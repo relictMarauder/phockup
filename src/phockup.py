@@ -57,7 +57,7 @@ class Phockup():
         """
         Walk input directory recursively and call process_file for each file except the ignored ones
         """
-        for root, _, files in os.walk(self.input):
+        for root, dirs, files in os.walk(self.input):
             files.sort()
             for filename in files:
                 if filename in ignored_files:
@@ -65,6 +65,11 @@ class Phockup():
 
                 file = os.path.join(root, filename)
                 self.process_file(file)
+
+            if self.move and len(os.listdir(root)) == 0:
+                # remove all empty directories in PATH
+                print('Deleting empty dirs in path: {}'.format(root))
+                os.removedirs(root)
 
     def checksum(self, file):
         """
