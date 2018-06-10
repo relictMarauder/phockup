@@ -25,6 +25,8 @@ class Phockup():
 
         self.input = input
         self.output = output
+        self.only_images = args.get('only_images', False)
+        self.only_videos = args.get('only_videos', False)
         self.dir_format = args.get('dir_format', os.path.sep.join(['%Y', '%m', '%d']))
         self.move = args.get('move', False)
         self.link = args.get('link', False)
@@ -85,6 +87,26 @@ class Phockup():
             return True
         return False
 
+    @staticmethod
+    def is_image(mimetype):
+        """
+        Use mimetype to determine if the file is an image
+        """
+        pattern = re.compile('^(image/.+|application/vnd.adobe.photoshop)$')
+        if pattern.match(mimetype):
+            return True
+        return False
+
+    @staticmethod
+    def is_video(mimetype):
+        """
+        Use mimetype to determine if the file is an video
+        """
+        pattern = re.compile('^(video/.+)$')
+        if pattern.match(mimetype):
+            return True
+        return False
+
     def get_output_dir(self, date):
         """
         Generate output directory path based on the extracted date and formatted using dir_format
@@ -124,6 +146,27 @@ class Phockup():
         except:
             return os.path.basename(file)
 
+    def is_file_must_be_processed(self, exif_data):
+        if not self.only_videos and not self.only_images:
+            """
+             Accept all files
+            """
+            return True
+        if self.only_videos and exif_data and 'MIMEType' in exif_data and self.is_video(exif_data['MIMEType']):
+            """
+            Accept video file 
+            """
+            return True
+        if self.only_images and exif_data and 'MIMEType' in exif_data and self.is_image(exif_data['MIMEType']):
+            """
+            Accept image file 
+            """
+            return True
+
+        if self.only_images or self.only_videos:
+            printer.line(' => skipped, file type is not allowed')
+        return False
+
     def process_file(self, file):
         """
         Process the file using the selected strategy
@@ -134,7 +177,12 @@ class Phockup():
 
         printer.line(file, True)
 
-        output, target_file_name, target_file_path = self.get_file_name_and_path(file)
+        exif_data = Exif(file).data()
+
+        if not self.is_file_must_be_processed(exif_data):
+            return
+
+        output, target_file_name, target_file_path = self.get_file_name_and_path(file, exif_data)
 
         suffix = 1
         target_file = target_file_path
@@ -168,11 +216,10 @@ class Phockup():
             target_split = os.path.splitext(target_file_path)
             target_file = "%s-%d%s" % (target_split[0], suffix, target_split[1])
 
-    def get_file_name_and_path(self, file):
+    def get_file_name_and_path(self, file, exif_data):
         """
         Returns target file name and path
         """
-        exif_data = Exif(file).data()
         if exif_data and 'MIMEType' in exif_data and self.is_image_or_video(exif_data['MIMEType']):
             date = Date(file).from_exif(exif_data, self.date_regex)
             output = self.get_output_dir(date)

@@ -19,11 +19,14 @@ def main(argv):
 
     move = False
     link = False
+    only_images = False
+    only_videos = False
     date_regex = None
     dir_format = os.path.sep.join(['%Y', '%m', '%d'])
 
     try:
-        opts, args = getopt.getopt(argv[2:], "d:r:mlh", ["date=", "regex=", "move", "link", "help"])
+        opts, args = getopt.getopt(argv[2:], "d:r:mlhiv",
+                                   ["date=", "regex=", "move", "link", "help", "only-images", "only-videos"])
     except getopt.GetoptError:
         help(version)
         sys.exit(2)
@@ -46,6 +49,14 @@ def main(argv):
             link = True
             printer.line("Using link strategy!")
 
+        if opt in ("-i", "--only-images"):
+            only_images = True
+            printer.line("Process only images with meta-information!")
+
+        if opt in ("-v", "--only-videos"):
+            only_videos = True
+            printer.line("Process only images with meta-information!")
+
         if opt in ("-r", "--regex"):
             try:
                 date_regex = re.compile(arg)
@@ -66,6 +77,8 @@ def main(argv):
         dir_format=dir_format,
         move=move,
         link=link,
+        only_images=only_images,
+        only_videos=only_videos,
         date_regex=date_regex
     )
 

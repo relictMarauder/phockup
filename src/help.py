@@ -44,13 +44,19 @@ OPTIONS
     -m | --move
         Instead of copying the process will move all files from the INPUTDIR to the OUTPUTDIR.
         This is useful when working with a big collection of files and the
-        remaining free space is not enough to make a copy of the INPUTDIR.
+        remaining free space is not enough to make a copy of the INPUTDIR. 
+        It will delete empty directories in INPUTDIR.
 
     -l | --link
         Instead of copying the process will make hard links to all files in INPUTDIR and place them in the OUTPUTDIR.
         This is useful when working with working structure and want to create YYYY/MM/DD structure to point to same files.
 
+    -i | --only-images
+        Process only files with image meta-information
 
+    -v | --only-videos
+        Process only files with videos meta-information
+                
     -r | --regex
         Specify date format for date extraction from filenames if there is no EXIF date information.
 
