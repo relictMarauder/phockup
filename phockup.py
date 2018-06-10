@@ -19,9 +19,9 @@ def main(argv):
 
     move = False
     link = False
+    date_regex = None
     only_images = False
     only_videos = False
-    date_regex = None
     dir_format = os.path.sep.join(['%Y', '%m', '%d'])
 
     try:
@@ -38,7 +38,7 @@ def main(argv):
 
         if opt in ("-d", "--date"):
             if not arg:
-                printer.print.error("Date format cannot be empty")
+                printer.error("Date format cannot be empty")
             dir_format = Date().parse(arg)
 
         if opt in ("-m", "--move"):
@@ -60,7 +60,7 @@ def main(argv):
         if opt in ("-r", "--regex"):
             try:
                 date_regex = re.compile(arg)
-            except:
+            except (ValueError, TypeError):
                 printer.error("Provided regex is invalid!")
                 sys.exit(2)
 

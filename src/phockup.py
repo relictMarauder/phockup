@@ -14,17 +14,17 @@ ignored_files = (".DS_Store", "Thumbs.db")
 
 
 class Phockup():
-    def __init__(self, input, output, **args):
-        input = os.path.expanduser(input)
-        output = os.path.expanduser(output)
+    def __init__(self, input_path, output_path, **args):
+        input_path = os.path.expanduser(input_path)
+        output_path = os.path.expanduser(output_path)
 
-        if input.endswith(os.path.sep):
-            input = input[:-1]
-        if output.endswith(os.path.sep):
-            output = output[:-1]
+        if input_path.endswith(os.path.sep):
+            input_path = input_path[:-1]
+        if output_path.endswith(os.path.sep):
+            output_path = output_path[:-1]
 
-        self.input = input
-        self.output = output
+        self.input_path = input_path
+        self.output_path = output_path
         self.only_images = args.get('only_images', False)
         self.only_videos = args.get('only_videos', False)
         self.dir_format = args.get('dir_format', os.path.sep.join(['%Y', '%m', '%d']))
@@ -41,14 +41,14 @@ class Phockup():
         If input does not exists it exits the process
         If output does not exists it tries to create it or exit with error
         """
-        if not os.path.isdir(self.input) or not os.path.exists(self.input):
-            printer.error('Input directory "%s" does not exist or cannot be accessed' % self.input)
+        if not os.path.isdir(self.input_path) or not os.path.exists(self.input_path):
+            printer.error('Input directory "%s" does not exist or cannot be accessed' % self.input_path)
             sys.exit(1)
             return
-        if not os.path.exists(self.output):
-            printer.line('Output directory "%s" does not exist, creating now' % self.output)
+        if not os.path.exists(self.output_path):
+            printer.line('Output directory "%s" does not exist, creating now' % self.output_path)
             try:
-                os.makedirs(self.output)
+                os.makedirs(self.output_path)
             except Exception:
                 printer.error('Cannot create output directory. No write access!')
                 sys.exit(1)
@@ -57,7 +57,7 @@ class Phockup():
         """
         Walk input directory recursively and call process_file for each file except the ignored ones
         """
-        for root, dirs, files in os.walk(self.input):
+        for root, dirs, files in os.walk(self.input_path):
             files.sort()
             for filename in files:
                 if filename in ignored_files:
@@ -71,7 +71,8 @@ class Phockup():
                 print('Deleting empty dirs in path: {}'.format(root))
                 os.removedirs(root)
 
-    def checksum(self, file):
+    @staticmethod
+    def checksum(file):
         """
         Calculate checksum for a file.
         Used to match if duplicated file name is actually a duplicated file
@@ -83,7 +84,8 @@ class Phockup():
                 sha256.update(block)
         return sha256.hexdigest()
 
-    def is_image_or_video(self, mimetype):
+    @staticmethod
+    def is_image_or_video(mimetype):
         """
         Use mimetype to determine if the file is an image or video
         """
@@ -112,24 +114,28 @@ class Phockup():
             return True
         return False
 
-    def get_output_dir(self, date):
+    def get_output_dir(self, date=None):
         """
         Generate output directory path based on the extracted date and formatted using dir_format
         If date is missing from the exifdata the file is going to "unknown" directory
         """
-        try:
-            path = [self.output, date['date'].date().strftime(self.dir_format)]
-        except:
-            path = [self.output, 'unknown']
+        if date is None:
+            path = [self.output_path, 'unknown']
+        else:
+            try:
+                path = [self.output_path, date['date'].date().strftime(self.dir_format)]
+            except:
+                path = [self.output_path, 'unknown']
 
-        fullpath = os.path.sep.join(path)
+        full_path = os.path.sep.join(path)
 
-        if not os.path.isdir(fullpath):
-            os.makedirs(fullpath)
+        if not os.path.isdir(full_path):
+            os.makedirs(full_path)
 
-        return fullpath
+        return full_path
 
-    def get_file_name(self, file, date):
+    @staticmethod
+    def get_file_name(file, date):
         """
         Generate file name based on exif data unless it is missing. Then use original file name
         """
@@ -231,7 +237,7 @@ class Phockup():
             target_file_name = self.get_file_name(file, date).lower()
             target_file_path = os.path.sep.join([output, target_file_name])
         else:
-            output = self.get_output_dir(False)
+            output = self.get_output_dir()
             target_file_name = os.path.basename(file)
             target_file_path = os.path.sep.join([output, target_file_name])
 
