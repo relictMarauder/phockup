@@ -1,7 +1,6 @@
 # Phockup
 
-[![Snap Status](https://build.snapcraft.io/badge/ivandokov/phockup.svg)](https://build.snapcraft.io/user/ivandokov/phockup)
-[![Build Status](https://travis-ci.org/ivandokov/phockup.svg?branch=master)](https://travis-ci.org/ivandokov/phockup)
+[![Build Status](https://travis-ci.org/relictMarauder/phockup.svg?branch=custom-changes)](https://travis-ci.org/relictMarauder/phockup)
 
 Media sorting tool to organize photos and videos from your camera in folders by year, month and day.
 
