@@ -142,11 +142,15 @@ class Phockup():
         try:
             filename = [
                 '%04d' % date['date'].year,
+                '-',
                 '%02d' % date['date'].month,
+                '-',
                 '%02d' % date['date'].day,
                 '-',
                 '%02d' % date['date'].hour,
+                '-',
                 '%02d' % date['date'].minute,
+                '-',
                 '%02d' % date['date'].second,
             ]
 
@@ -225,7 +229,7 @@ class Phockup():
 
             suffix += 1
             target_split = os.path.splitext(target_file_path)
-            target_file = "%s-%d%s" % (target_split[0], suffix, target_split[1])
+            target_file = "%s-%03d%s" % (target_split[0], suffix, target_split[1])
 
     def get_file_name_and_path(self, file, exif_data):
         """
