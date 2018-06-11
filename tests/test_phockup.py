@@ -6,7 +6,6 @@ from src.dependency import check_dependencies
 from src.exif import Exif
 from src.phockup import Phockup
 
-
 os.chdir(os.path.dirname(__file__))
 
 
@@ -36,7 +35,7 @@ def test_exit_if_missing_input_directory(mocker):
 def test_removing_trailing_slash_for_input_output(mocker):
     mocker.patch('os.makedirs')
     mocker.patch('sys.exit')
-    phockup = Phockup('in/', 'out/')
+    phockup = Phockup('in' + os.path.sep, 'out' + os.path.sep)
     assert phockup.input_path == 'in'
     assert phockup.output_path == 'out'
 
@@ -60,15 +59,18 @@ def test_error_for_no_write_access_when_creating_output_dir(mocker, capsys):
 def test_walking_directory():
     shutil.rmtree('output', ignore_errors=True)
     Phockup('input', 'output')
-    dir1='output/2017/01/01'
-    dir2='output/2017/10/06'
-    dir3='output/unknown'
+    dir1 = 'output/2017/01/01'
+    dir2 = 'output/2017/10/06'
+    dir3 = 'output/unknown'
     assert os.path.isdir(dir1)
     assert os.path.isdir(dir2)
     assert os.path.isdir(dir3)
     assert len([name for name in os.listdir(dir1) if os.path.isfile(os.path.join(dir1, name))]) == 3
     assert len([name for name in os.listdir(dir2) if os.path.isfile(os.path.join(dir2, name))]) == 1
-    assert len([name for name in os.listdir(dir3) if os.path.isfile(os.path.join(dir3, name))]) == 1
+    if os.name == 'nt':
+        assert len([name for name in os.listdir(dir3) if os.path.isfile(os.path.join(dir3, name))]) == 2
+    else:
+        assert len([name for name in os.listdir(dir3) if os.path.isfile(os.path.join(dir3, name))]) == 1
     shutil.rmtree('output', ignore_errors=True)
 
 
@@ -110,12 +112,13 @@ def test_process_file_with_filename_date(mocker):
 
 
 def test_process_link_to_file_with_filename_date(mocker):
-    shutil.rmtree('output', ignore_errors=True)
-    mocker.patch.object(Phockup, 'check_directories')
-    mocker.patch.object(Phockup, 'walk_directory')
-    Phockup('input', 'output').process_file("input/link_to_date_20170101_010101.jpg")
-    assert os.path.isfile("output/2017/01/01/20170101-010101.jpg")
-    shutil.rmtree('output', ignore_errors=True)
+    if os.name != 'nt':
+        shutil.rmtree('output', ignore_errors=True)
+        mocker.patch.object(Phockup, 'check_directories')
+        mocker.patch.object(Phockup, 'walk_directory')
+        Phockup('input', 'output').process_file("input/link_to_date_20170101_010101.jpg")
+        assert os.path.isfile("output/2017/01/01/20170101-010101.jpg")
+        shutil.rmtree('output', ignore_errors=True)
 
 
 def test_process_broken_link(mocker, capsys):
@@ -254,7 +257,7 @@ def test_process_same_date_different_files_rename(mocker):
         "CreateDate": "2017:01:01 01:01:01"
     }
     phockup.process_file("input/date_20170101_010101.jpg")
-    assert os.path.isfile("output/2017/01/01/20170101-010101-2.jpg")
+    assert os.path.isfile("output/2017/01/01/20170101-010101-002.jpg")
     shutil.rmtree('output', ignore_errors=True)
 
 

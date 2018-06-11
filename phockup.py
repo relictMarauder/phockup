@@ -22,6 +22,7 @@ def main(argv):
     date_regex = None
     only_images = False
     only_videos = False
+    output_file_name_format = '%Y%m%d-%H%M%S'
     dir_format = os.path.sep.join(['%Y', '%m', '%d'])
 
     try:
@@ -57,6 +58,10 @@ def main(argv):
             only_videos = True
             printer.line("Process only images with meta-information!")
 
+        if opt in ("-o", "--output-name"):
+            output_file_name_format = arg
+            printer.line("OutputFileName format: %s" % output_file_name_format)
+
         if opt in ("-r", "--regex"):
             try:
                 date_regex = re.compile(arg)
@@ -79,6 +84,7 @@ def main(argv):
         link=link,
         only_images=only_images,
         only_videos=only_videos,
+        output_file_name_format=output_file_name_format,
         date_regex=date_regex
     )
 

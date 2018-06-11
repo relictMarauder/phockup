@@ -30,6 +30,7 @@ class Phockup():
         self.dir_format = args.get('dir_format', os.path.sep.join(['%Y', '%m', '%d']))
         self.move = args.get('move', False)
         self.link = args.get('link', False)
+        self.output_file_name_format = args.get('output_file_name_format', '%Y%m%d-%H%M%S')
         self.date_regex = args.get('date_regex', None)
 
         self.check_directories()
@@ -134,30 +135,15 @@ class Phockup():
 
         return full_path
 
-    @staticmethod
-    def get_file_name(file, date):
+    def get_file_name(self, file, date):
         """
         Generate file name based on exif data unless it is missing. Then use original file name
         """
         try:
-            filename = [
-                '%04d' % date['date'].year,
-                '-',
-                '%02d' % date['date'].month,
-                '-',
-                '%02d' % date['date'].day,
-                '-',
-                '%02d' % date['date'].hour,
-                '-',
-                '%02d' % date['date'].minute,
-                '-',
-                '%02d' % date['date'].second,
-            ]
-
+            filename = date['date'].strftime(self.output_file_name_format)
             if date['subseconds']:
-                filename.append(date['subseconds'])
-
-            return ''.join(filename) + os.path.splitext(file)[1]
+                filename += date['subseconds']
+            return filename + os.path.splitext(file)[1]
         except:
             return os.path.basename(file)
 

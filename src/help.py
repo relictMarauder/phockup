@@ -55,8 +55,11 @@ OPTIONS
         Process only files with image meta-information
 
     -v | --only-videos
-        Process only files with videos meta-information
-                
+        Process only files with videos meta-information        
+        
+    -o | --output-name
+        Specify output filename format (you kann use same format as for OUTPUTDIR)            
+        
     -r | --regex
         Specify date format for date extraction from filenames if there is no EXIF date information.
 
