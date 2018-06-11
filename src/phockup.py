@@ -32,9 +32,11 @@ class Phockup():
         self.link = args.get('link', False)
         self.output_file_name_format = args.get('output_file_name_format', '%Y%m%d-%H%M%S')
         self.date_regex = args.get('date_regex', None)
-
+        printer.line("Checking directories...")
         self.check_directories()
+        printer.line("Processing files...")
         self.walk_directory()
+        printer.line("All files are processed.")
 
     def check_directories(self):
         """
