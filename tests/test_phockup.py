@@ -269,6 +269,17 @@ def test_process_skip_xmp(mocker):
     phockup.process_file("skip.xmp")
 
 
+def test_process_delete_empty_input_folder():
+    shutil.rmtree('output', ignore_errors=True)
+    shutil.rmtree('input_ignored', ignore_errors=True)
+    os.mkdir('input_ignored')
+    os.mkdir('input_ignored/empty_dir')
+    Phockup('input_ignored', 'output', move=True)
+    assert not os.path.exists("input_ignored/empty_dir")
+    shutil.rmtree('output', ignore_errors=True)
+    shutil.rmtree('input_ignored', ignore_errors=True)
+
+
 def test_process_skip_ignored_file():
     shutil.rmtree('output', ignore_errors=True)
     shutil.rmtree('input_ignored', ignore_errors=True)
