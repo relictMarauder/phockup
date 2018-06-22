@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import filecmp
 import hashlib
 import os
 import re
@@ -103,6 +104,7 @@ class Phockup():
         Calculate checksum for a file.
         Used to match if duplicated file name is actually a duplicated file
         """
+
         block_size = 65536
         sha256 = hashlib.sha256()
         with open(file, 'rb') as f:
@@ -217,8 +219,13 @@ class Phockup():
 
         while True:
             if os.path.isfile(target_file):
-                if self.checksum(file) == self.checksum(target_file):
-                    printer.line(' => skipped, duplicated file')
+                if filecmp.cmp(file, target_file):
+                    # if self.checksum(file) == self.checksum(target_file):
+                    if self.move:
+                        os.remove(file)
+                        printer.line(' => remove, duplicated file')
+                    else:
+                        printer.line(' => skipped, duplicated file')
                     break
             else:
                 if self.move:
