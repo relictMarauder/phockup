@@ -26,7 +26,7 @@ def main(argv):
     dir_format = os.path.sep.join(['%Y', '%m', '%d'])
 
     try:
-        opts, args = getopt.getopt(argv[2:], "d:r:mlhivo",
+        opts, args = getopt.getopt(argv[2:], "d:r:o:mlhiv",
                                    ["date=",
                                     "regex=",
                                     "move",
@@ -34,7 +34,7 @@ def main(argv):
                                     "help",
                                     "only-images",
                                     "only-videos",
-                                    'output-name'])
+                                    'output-name='])
     except getopt.GetoptError:
         help(version)
         sys.exit(2)
@@ -67,7 +67,7 @@ def main(argv):
 
         if opt in ("-o", "--output-name"):
             if not arg:
-                printer.error("Output file name  format cannot be empty")
+                printer.error("Output file name format cannot be empty")
             output_file_name_format = arg
             printer.line("OutputFileName format: %s" % output_file_name_format)
 
