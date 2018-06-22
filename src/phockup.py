@@ -16,6 +16,11 @@ ignored_files = (".DS_Store", "Thumbs.db")
 class Phockup():
     def __init__(self, input_path, **args):
         self.log = self.setup_logger()
+        self.counter_all_files = 0
+        self.counter_video_files = 0
+        self.counter_image_files = 0
+        self.counter_unknown_files = 0
+        self.counter_duplicates = 0
         self.log.info("Start processing....")
         input_path = os.path.expanduser(input_path)
 
@@ -39,7 +44,10 @@ class Phockup():
             self.check_directories()
             self.log.info("Processing files...")
             self.walk_directory()
-            self.log.info("All files are processed.")
+            self.log.info(
+                "All files are processed: %d duplicates from %d files" % (self.counter_all_files, self.counter_duplicates))
+            self.log.info("Processed images: %d, videos: %d, unknown %d" % (
+                self.images_output_path, self.counter_video_files, self.counter_unknown_files))
             self.log.handlers = []
         except Exception as ex:
             self.log.handlers = []
@@ -274,6 +282,7 @@ class Phockup():
             if os.path.isfile(target_file):
                 if filecmp.cmp(file, target_file):
                     # if self.checksum(file) == self.checksum(target_file):
+                    self.counter_duplicates += 1
                     if self.move:
                         os.remove(file)
                         self.log.info(log_line + ' => remove, duplicated file')
@@ -317,6 +326,7 @@ class Phockup():
             output = self.get_output_dir(date=date,
                                          output_path=self.images_output_path,
                                          unknown_output_path=self.unknown_output_path)
+            self.counter_image_files += 1
         elif exif_data \
                 and 'MIMEType' in exif_data \
                 and self.videos_output_path is not None \
@@ -325,10 +335,13 @@ class Phockup():
             output = self.get_output_dir(date=date,
                                          output_path=self.videos_output_path,
                                          unknown_output_path=self.unknown_output_path)
+            self.counter_video_files += 1
         else:
             output = self.get_output_dir(output_path=self.unknown_output_path,
                                          unknown_output_path=self.unknown_output_path)
 
+            self.counter_unknown_files += 1
+        self.counter_all_files += 1
         target_file_name = self.get_file_name(file, date).lower() if date else os.path.basename(file)
         target_file_path = os.path.sep.join([output, target_file_name])
 
