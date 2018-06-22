@@ -58,7 +58,7 @@ OPTIONS
         Process only files with videos meta-information        
         
     -o | --output-name
-        Specify output filename(w/o extension) format (use same format as for OUTPUTDIR, default: '%Y%m%d-%H%M%S')            
+        Specify output filename(w/o extension) format (default: '%Y%m%d-%H%M%S')            
         
     -r | --regex
         Specify date format for date extraction from filenames if there is no EXIF date information.
