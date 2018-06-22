@@ -111,6 +111,13 @@ pytest
 ```
 
 ## Changelog
+##### `1.6.4-relict`
+* Add `-i | --only-images` flag to process ony files with image meta information
+* Add `-v | --only-vides` flag to process ony files with videos meta information
+* Add `-o | --output-name` specify output filename(w/o extension) format (use same format as for OUTPUTDIR, default: '%Y%m%d-%H%M%S')
+* By moving files instead of copy remove all empty folder
+* Add additional console outputs
+* Add test for delete empty input folders by move  
 ##### `1.5.4`
 * Handle gracefully files without MIMEType
 ##### `1.5.3`
