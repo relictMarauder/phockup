@@ -50,16 +50,25 @@ brew install phockup
 ## Usage
 Organize photos from one directory into another
 ```
-phockup INPUTDIR OUTPUTDIR
+phockup INPUTDIR -i IMAGES_OUTPUTDIR -v VIDEOS_OUTPUTDIR -u UNKNOWN_OUTPUTDIR 
 ```
 
 `INPUTDIR` is the directory where your photos are located.
-`OUTPUTDIR` is the directory where your **sorted** photos will be stored. It could be a new not existing directory.
+
+`IMAGES_OUTPUTDIR` is the directory where your **sorted** photos will be stored. It could be a new not existing directory.
+
+`VIDOES_OUTPUTDIR` is the directory where your **sorted** videos will be stored. It could be a new not existing directory.
+
+`IMAGES_OUTPUTDIR` is the directory where your unknown files will be stored. It could be a new not existing directory.
+
+
 
 Example:
 ```
-phockup ~/Pictures/camera ~/Pictures/sorted
+phockup ~/Pictures/camera -i ~/Pictures/sorted -v ~/Pictures/sorted  -u ~/Pictures/sorted/unknown
 ```
+
+If one of `OUTPUTDIR` is not specified, the file of this file type will be skipped by processing
 
 ### Date format
 If you want to change the output directories date format you can do it by passing the format as `-d | --date` argument.
@@ -90,10 +99,10 @@ If any of the photos does not have date information you can use the `-r | --rege
 ```
 
 ### Move files
-Instead of copying the process will move all files from the INPUTDIR to the OUTPUTDIR by using the flag `-m | --move`. This is useful when working with a big collection of files and the remaining free space is not enough to make a copy of the INPUTDIR.
+Instead of copying the process will move all files from the INPUTDIR to the *OUTPUTDIR by using the flag `-m | --move`. This is useful when working with a big collection of files and the remaining free space is not enough to make a copy of the INPUTDIR.
 
 ### Link files
-Instead of copying the process will create hard link all files from the INPUTDIR into new structure in OUTPUTDIR by using the flag `-l | --link`. This is useful when working with good structure of photos in INPUTDIR (like folders per device).
+Instead of copying the process will create hard link all files from the INPUTDIR into new structure in *OUTPUTDIR by using the flag `-l | --link`. This is useful when working with good structure of photos in INPUTDIR (like folders per device).
 
 ## Development
 
@@ -111,6 +120,14 @@ pytest
 ```
 
 ## Changelog
+##### `1.7.0-relict`
+* Remove `[OUTPUTDIR]` parameter
+* Remove `-i | --only-images` parameter
+* Remote`-v | --only-vides` parameter
+* Add `-i | --image-output` is the directory where your **sorted** photos will be stored. It could be a new not existing directory. 
+* Add `-v | --videos-output`  is the directory where your **sorted** videos will be stored. It could be a new not existing directory.
+* Add `-u | --unknown-output`  is the directory where your unknown files will be stored. It could be a new not existing directory.
+
 ##### `1.6.4-relict`
 * Add `-i | --only-images` flag to process ony files with image meta information
 * Add `-v | --only-vides` flag to process ony files with videos meta information

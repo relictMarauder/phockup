@@ -14,9 +14,6 @@ ARGUMENTS
     INPUTDIR
         Specify the source directory where your photos are located
 
-    OUTPUTDIR
-        Specify the output directory where your photos should be exported
-
 OPTIONS
     -d | --date
         Specify date format for OUTPUTDIR directories.
@@ -51,12 +48,18 @@ OPTIONS
         Instead of copying the process will make hard links to all files in INPUTDIR and place them in the OUTPUTDIR.
         This is useful when working with working structure and want to create YYYY/MM/DD structure to point to same files.
 
-    -i | --only-images
-        Process only files with image meta-information
+    -i | --images-output
+        Specify the output directory where your images should be exported.
+        If this output directory is not defined the process wall skipp all images .
 
-    -v | --only-videos
-        Process only files with videos meta-information        
-        
+    -v | --videos-output
+        Specify the output directory where your videos should be exported. 
+        If this output directory is not defined the process wall skipp all videos       
+
+    -u | --unknown-output
+        Specify the output directory where your unknown files should be exported.
+        If this output directory is not defined the process wall skipp all unknown files
+                
     -o | --output-name
         Specify output filename(w/o extension) format (default: '%Y%m%d-%H%M%S')            
         

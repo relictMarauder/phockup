@@ -10,7 +10,7 @@ from src.help import help
 from src.phockup import Phockup
 from src.printer import Printer
 
-version = '1.6.4-relict'
+version = '1.7.0-relict'
 printer = Printer()
 
 
@@ -20,21 +20,23 @@ def main(argv):
     move = False
     link = False
     date_regex = None
-    only_images = False
-    only_videos = False
+    images_output_path = None
+    videos_output_path = None
+    unknown_output_path = None
     output_file_name_format = '%Y%m%d-%H%M%S'
     dir_format = os.path.sep.join(['%Y', '%m', '%d'])
 
     try:
-        opts, args = getopt.getopt(argv[2:], "d:r:o:mlhiv",
+        opts, args = getopt.getopt(argv[1:], "d:r:o:i:u:v:mlh",
                                    ["date=",
                                     "regex=",
                                     "move",
                                     "link",
                                     "help",
-                                    "only-images",
-                                    "only-videos",
-                                    'output-name='])
+                                    "images-output=",
+                                    "videos-output=",
+                                    "unknown-output=",
+                                    "output-name="])
     except getopt.GetoptError:
         help(version)
         sys.exit(2)
@@ -47,6 +49,7 @@ def main(argv):
         if opt in ("-d", "--date"):
             if not arg:
                 printer.error("Date format cannot be empty")
+                sys.exit(2)
             dir_format = Date().parse(arg)
 
         if opt in ("-m", "--move"):
@@ -57,17 +60,19 @@ def main(argv):
             link = True
             printer.line("Using link strategy!")
 
-        if opt in ("-i", "--only-images"):
-            only_images = True
-            printer.line("Process only images with meta-information!")
+        if opt in ("-i", "--images-output"):
+            images_output_path = arg
 
-        if opt in ("-v", "--only-videos"):
-            only_videos = True
-            printer.line("Process only images with meta-information!")
+        if opt in ("-v", "--videos-output"):
+            videos_output_path = arg
+
+        if opt in ("-u", "--unknown-output"):
+            unknown_output_path = arg
 
         if opt in ("-o", "--output-name"):
             if not arg:
                 printer.error("Output file name format cannot be empty")
+                sys.exit(2)
             output_file_name_format = arg
             printer.line("OutputFileName format: %s" % output_file_name_format)
 
@@ -86,13 +91,29 @@ def main(argv):
         help(version)
         sys.exit(2)
 
+    if images_output_path is None:
+        printer.line("Skip processing images with meta-information")
+    else:
+        printer.line("Output path for images with meta-information: %s" % images_output_path)
+
+    if videos_output_path is None:
+        printer.line("Skip processing videos with meta-information")
+    else:
+        printer.line("Output path for videos with meta-information: %s" % videos_output_path)
+
+    if unknown_output_path is None:
+        printer.line("Skip processing unknown files")
+    else:
+        printer.line("Output path for unknown: %s" % unknown_output_path)
+
     return Phockup(
-        argv[0], argv[1],
+        argv[0],
         dir_format=dir_format,
         move=move,
         link=link,
-        only_images=only_images,
-        only_videos=only_videos,
+        images_output_path=images_output_path,
+        videos_output_path=videos_output_path,
+        unknown_output_path=unknown_output_path,
         output_file_name_format=output_file_name_format,
         date_regex=date_regex
     )

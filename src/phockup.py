@@ -14,19 +14,18 @@ ignored_files = (".DS_Store", "Thumbs.db")
 
 
 class Phockup():
-    def __init__(self, input_path, output_path, **args):
+    def __init__(self, input_path, **args):
         input_path = os.path.expanduser(input_path)
-        output_path = os.path.expanduser(output_path)
 
         if input_path.endswith(os.path.sep):
             input_path = input_path[:-1]
-        if output_path.endswith(os.path.sep):
-            output_path = output_path[:-1]
+
+        self.images_output_path = self.get_path_param('images_output_path', args)
+        self.videos_output_path = self.get_path_param('videos_output_path', args)
+        self.unknown_output_path = self.get_path_param('unknown_output_path', args)
 
         self.input_path = input_path
-        self.output_path = output_path
-        self.only_images = args.get('only_images', False)
-        self.only_videos = args.get('only_videos', False)
+
         self.dir_format = args.get('dir_format', os.path.sep.join(['%Y', '%m', '%d']))
         self.move = args.get('move', False)
         self.link = args.get('link', False)
@@ -38,6 +37,13 @@ class Phockup():
         self.walk_directory()
         printer.line("All files are processed.")
 
+    def get_path_param(self, param_name, params):
+        path = params.get(param_name, None)
+        path = None if path is None else os.path.expanduser(path)
+        if path is not None and path.endswith(os.path.sep):
+            return path[:-1]
+        return path
+
     def check_directories(self):
         """
         Check if input and output directories exist.
@@ -47,13 +53,30 @@ class Phockup():
         if not os.path.isdir(self.input_path) or not os.path.exists(self.input_path):
             printer.error('Input directory "%s" does not exist or cannot be accessed' % self.input_path)
             sys.exit(1)
-            return
-        if not os.path.exists(self.output_path):
-            printer.line('Output directory "%s" does not exist, creating now' % self.output_path)
+
+        if self.videos_output_path is not None and not os.path.exists(self.videos_output_path):
+            printer.line('Output directory for videos "%s" does not exist, creating now' % self.videos_output_path)
             try:
-                os.makedirs(self.output_path)
+                os.makedirs(self.videos_output_path)
             except Exception:
-                printer.error('Cannot create output directory. No write access!')
+                printer.error('Cannot create output directory for videos files. No write access!')
+                sys.exit(1)
+
+        if self.images_output_path is not None and not os.path.exists(self.images_output_path):
+            printer.line('Output directory for images "%s" does not exist, creating now' % self.images_output_path)
+            try:
+                os.makedirs(self.images_output_path)
+            except Exception:
+                printer.error('Cannot create output directory for images files. No write access!')
+                sys.exit(1)
+
+        if self.unknown_output_path is not None and not os.path.exists(self.unknown_output_path):
+            printer.line(
+                'Output directory for unknown files "%s" does not exist, creating now' % self.unknown_output_path)
+            try:
+                os.makedirs(self.unknown_output_path)
+            except Exception:
+                printer.error('Cannot create output directory for unknown files. No write access!')
                 sys.exit(1)
 
     def walk_directory(self):
@@ -88,47 +111,45 @@ class Phockup():
         return sha256.hexdigest()
 
     @staticmethod
-    def is_image_or_video(mimetype):
-        """
-        Use mimetype to determine if the file is an image or video
-        """
-        pattern = re.compile('^(image/.+|video/.+|application/vnd.adobe.photoshop)$')
-        if pattern.match(mimetype):
-            return True
-        return False
-
-    @staticmethod
-    def is_image(mimetype):
+    def is_image(mime_type):
         """
         Use mimetype to determine if the file is an image
         """
         pattern = re.compile('^(image/.+|application/vnd.adobe.photoshop)$')
-        if pattern.match(mimetype):
+        if pattern.match(mime_type):
             return True
         return False
 
     @staticmethod
-    def is_video(mimetype):
+    def is_video(mime_type):
         """
         Use mimetype to determine if the file is an video
         """
         pattern = re.compile('^(video/.+)$')
-        if pattern.match(mimetype):
+        if pattern.match(mime_type):
             return True
         return False
 
-    def get_output_dir(self, date=None):
+    def get_output_dir(self, date=None, output_path=None, unknown_output_path=None):
         """
         Generate output directory path based on the extracted date and formatted using dir_format
         If date is missing from the exifdata the file is going to "unknown" directory
         """
+        if output_path is None:
+            printer.error("The output file is not defined")
+            sys.exit(2)
+
         if date is None:
-            path = [self.output_path, 'unknown']
+            if unknown_output_path is None:
+                return None
+            path = [unknown_output_path]
         else:
             try:
-                path = [self.output_path, date['date'].date().strftime(self.dir_format)]
+                path = [output_path, date['date'].date().strftime(self.dir_format)]
             except:
-                path = [self.output_path, 'unknown']
+                if unknown_output_path is None:
+                    return None
+                path = output_path
 
         full_path = os.path.sep.join(path)
 
@@ -150,25 +171,29 @@ class Phockup():
             return os.path.basename(file)
 
     def is_file_must_be_processed(self, exif_data):
-        if not self.only_videos and not self.only_images:
-            """
-             Accept all files
-            """
-            return True
-        if self.only_videos and exif_data and 'MIMEType' in exif_data and self.is_video(exif_data['MIMEType']):
-            """
-            Accept video file 
-            """
-            return True
-        if self.only_images and exif_data and 'MIMEType' in exif_data and self.is_image(exif_data['MIMEType']):
-            """
-            Accept image file 
-            """
-            return True
+        is_known_type = False
+        if exif_data \
+                and 'MIMEType' in exif_data \
+                and self.is_video(exif_data['MIMEType']):
+            is_known_type = True
+            if self.videos_output_path is None:
+                printer.line(' => skipped, output path for video file type is not defined')
+                return False
 
-        if self.only_images or self.only_videos:
-            printer.line(' => skipped, file type is not allowed')
-        return False
+        if exif_data \
+                and 'MIMEType' in exif_data \
+                and self.is_image(exif_data['MIMEType']):
+            is_known_type = True
+            if self.images_output_path is None:
+                printer.line(' => skipped, output path for image file type is not defined')
+                return False
+
+        if not is_known_type:
+            if self.unknown_output_path is None:
+                printer.line(' => skipped, output path for unknown file type is not defined')
+                return False
+
+        return True
 
     def process_file(self, file):
         """
@@ -223,15 +248,29 @@ class Phockup():
         """
         Returns target file name and path
         """
-        if exif_data and 'MIMEType' in exif_data and self.is_image_or_video(exif_data['MIMEType']):
+        date = None
+        if exif_data \
+                and 'MIMEType' in exif_data \
+                and self.images_output_path is not None \
+                and self.is_image(exif_data['MIMEType']):
             date = Date(file).from_exif(exif_data, self.date_regex)
-            output = self.get_output_dir(date)
-            target_file_name = self.get_file_name(file, date).lower()
-            target_file_path = os.path.sep.join([output, target_file_name])
+            output = self.get_output_dir(date=date,
+                                         output_path=self.images_output_path,
+                                         unknown_output_path=self.unknown_output_path)
+        elif exif_data \
+                and 'MIMEType' in exif_data \
+                and self.videos_output_path is not None \
+                and self.is_video(exif_data['MIMEType']):
+            date = Date(file).from_exif(exif_data, self.date_regex)
+            output = self.get_output_dir(date=date,
+                                         output_path=self.videos_output_path,
+                                         unknown_output_path=self.unknown_output_path)
         else:
-            output = self.get_output_dir()
-            target_file_name = os.path.basename(file)
-            target_file_path = os.path.sep.join([output, target_file_name])
+            output = self.get_output_dir(output_path=self.unknown_output_path,
+                                         unknown_output_path=self.unknown_output_path)
+
+        target_file_name = self.get_file_name(file, date).lower() if date else os.path.basename(file)
+        target_file_path = os.path.sep.join([output, target_file_name])
 
         return output, target_file_name, target_file_path
 
