@@ -57,7 +57,7 @@ def test_error_for_missing_input_dir(mocker, capsys):
             videos_output_path='out',
             unknown_output_path='out/unknown')
     sys.exit.assert_called_once_with(1)
-    assert 'Input directory "in" does not exist' in capsys.readouterr()[0]
+    assert any(item.find('Input directory "in" does not exist') for item in capsys.readouterr())
 
 
 def test_error_for_no_write_access_when_creating_output_dir(mocker, capsys):
@@ -66,13 +66,13 @@ def test_error_for_no_write_access_when_creating_output_dir(mocker, capsys):
     mocker.patch('sys.exit')
     Phockup('input', videos_output_path='/root/phockup')
     sys.exit.assert_called_once_with(1)
-    assert 'No write access' in capsys.readouterr()[0]
+    assert any(item.find('No write access') for item in capsys.readouterr())
     Phockup('input', images_output_path='/root/phockup')
-    sys.exit.assert_has_calls([call(1),call(1)])
-    assert 'No write access' in capsys.readouterr()[0]
+    sys.exit.assert_has_calls([call(1), call(1)])
+    assert any(item.find('No write access') for item in capsys.readouterr())
     Phockup('input', unknown_output_path='/root/phockup')
-    sys.exit.assert_has_calls([call(1),call(1),call(1)])
-    assert 'No write access' in capsys.readouterr()[0]
+    sys.exit.assert_has_calls([call(1), call(1), call(1)])
+    assert any(item.find('No write access') for item in capsys.readouterr())
 
 
 def test_walking_directory():
@@ -176,7 +176,7 @@ def test_process_broken_link(mocker, capsys):
             images_output_path='output',
             videos_output_path='output',
             unknown_output_path='output/unknown').process_file("input/not_a_file.jpg")
-    assert 'skipped, no such file or directory' in capsys.readouterr()[0]
+    assert any(item.find( 'skipped, no such file or directory') for item in capsys.readouterr())
     shutil.rmtree('output', ignore_errors=True)
 
 
@@ -190,7 +190,7 @@ def test_process_broken_link_move(mocker, capsys):
                       unknown_output_path='output/unknown',
                       move=True)
     phockup.process_file("input/not_a_file.jpg")
-    assert 'skipped, no such file or directory' in capsys.readouterr()[0]
+    assert any(item.find('skipped, no such file or directory') for item in capsys.readouterr())
     shutil.rmtree('output', ignore_errors=True)
 
 
@@ -322,7 +322,7 @@ def test_process_exists_same(mocker, capsys):
     phockup.process_file("input/exif.jpg")
     assert os.path.isfile("output/2017/01/01/20170101-010101.jpg")
     phockup.process_file("input/exif.jpg")
-    assert 'skipped, duplicated file' in capsys.readouterr()[0]
+    assert any(item.find( 'skipped, duplicated file') for item in capsys.readouterr())
     shutil.rmtree('output', ignore_errors=True)
 
 

@@ -5,17 +5,18 @@ import os
 import re
 import shutil
 import sys
+import logging
 
 from src.date import Date
 from src.exif import Exif
-from src.printer import Printer
 
-printer = Printer()
 ignored_files = (".DS_Store", "Thumbs.db")
 
 
 class Phockup():
     def __init__(self, input_path, **args):
+        self.log = self.setup_logger()
+        self.log.info("Start processing....")
         input_path = os.path.expanduser(input_path)
 
         if input_path.endswith(os.path.sep):
@@ -32,11 +33,64 @@ class Phockup():
         self.link = args.get('link', False)
         self.output_file_name_format = args.get('output_file_name_format', '%Y%m%d-%H%M%S')
         self.date_regex = args.get('date_regex', None)
-        printer.line("Checking directories...")
-        self.check_directories()
-        printer.line("Processing files...")
-        self.walk_directory()
-        printer.line("All files are processed.")
+        self.log_config()
+        try:
+            self.log.info("Checking directories...")
+            self.check_directories()
+            self.log.info("Processing files...")
+            self.walk_directory()
+            self.log.info("All files are processed.")
+            self.log.handlers = []
+        except Exception as ex:
+            self.log.handlers = []
+            sys.exit(1)
+
+    def log_config(self):
+        self.log.info('Config:')
+        if self.images_output_path is None:
+            self.log.info("Skip processing images with meta-information")
+        else:
+            self.log.info("Output path for images with meta-information: %s" % self.images_output_path)
+
+        if self.videos_output_path is None:
+            self.log.info("Skip processing videos with meta-information")
+        else:
+            self.log.info("Output path for videos with meta-information: %s" % self.videos_output_path)
+
+        if self.unknown_output_path is None:
+            self.log.info("Skip processing unknown files")
+        else:
+            self.log.info("Output path for unknown: %s" % self.unknown_output_path)
+
+        if self.date_regex:
+            self.log.info("The reg exp for timestamp retrieving: %s" % self.date_regex)
+
+        self.log.info("OutputFileName format: %s" % self.output_file_name_format)
+
+        self.log.info("OutputDir format: %s" % self.dir_format)
+
+        if self.link:
+            self.log.info("Using link strategy!")
+
+        if self.move:
+            self.log.info("Using move strategy!")
+
+    def setup_logger(self, log_file_name=None):
+        formatter = logging.Formatter(fmt='%(asctime)s %(levelname)-8s %(message)s',
+                                      datefmt='%Y-%m-%d %H:%M:%S')
+
+        logger = logging.getLogger()
+        logger.setLevel(logging.DEBUG)
+        screen_handler = logging.StreamHandler(stream=sys.stdout)
+        screen_handler.setFormatter(formatter)
+
+        if log_file_name is not None:
+            handler = logging.FileHandler('log.txt', mode='w')
+            handler.setFormatter(formatter)
+            logger.addHandler(handler)
+
+        logger.addHandler(screen_handler)
+        return logger
 
     def get_path_param(self, param_name, params):
         path = params.get(param_name, None)
@@ -52,33 +106,33 @@ class Phockup():
         If output does not exists it tries to create it or exit with error
         """
         if not os.path.isdir(self.input_path) or not os.path.exists(self.input_path):
-            printer.error('Input directory "%s" does not exist or cannot be accessed' % self.input_path)
-            sys.exit(1)
+            self.log.error('Input directory "%s" does not exist or cannot be accessed' % self.input_path)
+            raise Exception()
 
         if self.videos_output_path is not None and not os.path.exists(self.videos_output_path):
-            printer.line('Output directory for videos "%s" does not exist, creating now' % self.videos_output_path)
+            self.log.info('Output directory for videos "%s" does not exist, creating now' % self.videos_output_path)
             try:
                 os.makedirs(self.videos_output_path)
-            except Exception:
-                printer.error('Cannot create output directory for videos files. No write access!')
-                sys.exit(1)
+            except Exception as ex:
+                self.log.error('Cannot create output directory for videos files. No write access!')
+                raise ex
 
         if self.images_output_path is not None and not os.path.exists(self.images_output_path):
-            printer.line('Output directory for images "%s" does not exist, creating now' % self.images_output_path)
+            self.log.info('Output directory for images "%s" does not exist, creating now' % self.images_output_path)
             try:
                 os.makedirs(self.images_output_path)
-            except Exception:
-                printer.error('Cannot create output directory for images files. No write access!')
-                sys.exit(1)
+            except Exception as ex:
+                self.log.error('Cannot create output directory for images files. No write access!')
+                raise ex
 
         if self.unknown_output_path is not None and not os.path.exists(self.unknown_output_path):
-            printer.line(
+            self.log.info(
                 'Output directory for unknown files "%s" does not exist, creating now' % self.unknown_output_path)
             try:
                 os.makedirs(self.unknown_output_path)
-            except Exception:
-                printer.error('Cannot create output directory for unknown files. No write access!')
-                sys.exit(1)
+            except Exception as ex:
+                self.log.error('Cannot create output directory for unknown files. No write access!')
+                raise ex
 
     def walk_directory(self):
         """
@@ -95,7 +149,7 @@ class Phockup():
 
             if self.move and len(os.listdir(root)) == 0:
                 # remove all empty directories in PATH
-                print('Deleting empty dirs in path: {}'.format(root))
+                self.log.info('Deleting empty dirs in path: {}'.format(root))
                 os.removedirs(root)
 
     @staticmethod
@@ -138,8 +192,8 @@ class Phockup():
         If date is missing from the exifdata the file is going to "unknown" directory
         """
         if output_path is None:
-            printer.error("The output file is not defined")
-            sys.exit(2)
+            self.log.error("The output file is not defined")
+            raise Exception()
 
         if date is None:
             if unknown_output_path is None:
@@ -179,7 +233,7 @@ class Phockup():
                 and self.is_video(exif_data['MIMEType']):
             is_known_type = True
             if self.videos_output_path is None:
-                printer.line(' => skipped, output path for video file type is not defined')
+                self.log.info(' => skipped, output path for video file type is not defined')
                 return False
 
         if exif_data \
@@ -187,12 +241,12 @@ class Phockup():
                 and self.is_image(exif_data['MIMEType']):
             is_known_type = True
             if self.images_output_path is None:
-                printer.line(' => skipped, output path for image file type is not defined')
+                self.log.info(' => skipped, output path for image file type is not defined')
                 return False
 
         if not is_known_type:
             if self.unknown_output_path is None:
-                printer.line(' => skipped, output path for unknown file type is not defined')
+                self.log.info(' => skipped, output path for unknown file type is not defined')
                 return False
 
         return True
@@ -204,8 +258,7 @@ class Phockup():
         """
         if str.endswith(file, '.xmp'):
             return None
-
-        printer.line(file, True)
+        log_line = file
 
         exif_data = Exif(file).data()
 
@@ -223,16 +276,16 @@ class Phockup():
                     # if self.checksum(file) == self.checksum(target_file):
                     if self.move:
                         os.remove(file)
-                        printer.line(' => remove, duplicated file')
+                        self.log.info(log_line + ' => remove, duplicated file')
                     else:
-                        printer.line(' => skipped, duplicated file')
+                        self.log.info(log_line + ' => skipped, duplicated file')
                     break
             else:
                 if self.move:
                     try:
                         shutil.move(file, target_file)
                     except FileNotFoundError:
-                        printer.line(' => skipped, no such file or directory')
+                        self.log.info(log_line + ' => skipped, no such file or directory')
                         break
                 elif self.link:
                     os.link(file, target_file)
@@ -240,10 +293,10 @@ class Phockup():
                     try:
                         shutil.copy2(file, target_file)
                     except FileNotFoundError:
-                        printer.line(' => skipped, no such file or directory')
+                        self.log.info(log_line + ' => skipped, no such file or directory')
                         break
 
-                printer.line(' => %s' % target_file)
+                self.log.info(log_line + (' => %s' % target_file))
                 self.process_xmp(file, target_file_name, suffix, output)
                 break
 
@@ -302,7 +355,7 @@ class Phockup():
 
         if xmp_original:
             xmp_path = os.path.sep.join([output, xmp_target])
-            printer.line('%s => %s' % (xmp_original, xmp_path))
+            self.log.info('%s => %s' % (xmp_original, xmp_path))
 
             if self.move:
                 shutil.move(xmp_original, xmp_path)

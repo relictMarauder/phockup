@@ -54,11 +54,9 @@ def main(argv):
 
         if opt in ("-m", "--move"):
             move = True
-            printer.line("Using move strategy!")
 
         if opt in ("-l", "--link"):
             link = True
-            printer.line("Using link strategy!")
 
         if opt in ("-i", "--images-output"):
             images_output_path = arg
@@ -74,7 +72,6 @@ def main(argv):
                 printer.error("Output file name format cannot be empty")
                 sys.exit(2)
             output_file_name_format = arg
-            printer.line("OutputFileName format: %s" % output_file_name_format)
 
         if opt in ("-r", "--regex"):
             try:
@@ -91,20 +88,7 @@ def main(argv):
         help(version)
         sys.exit(2)
 
-    if images_output_path is None:
-        printer.line("Skip processing images with meta-information")
-    else:
-        printer.line("Output path for images with meta-information: %s" % images_output_path)
 
-    if videos_output_path is None:
-        printer.line("Skip processing videos with meta-information")
-    else:
-        printer.line("Output path for videos with meta-information: %s" % videos_output_path)
-
-    if unknown_output_path is None:
-        printer.line("Skip processing unknown files")
-    else:
-        printer.line("Output path for unknown: %s" % unknown_output_path)
 
     return Phockup(
         argv[0],
