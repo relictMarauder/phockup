@@ -45,9 +45,10 @@ class Phockup():
             self.log.info("Processing files...")
             self.walk_directory()
             self.log.info(
-                "All files are processed: %d duplicates from %d files" % (self.counter_all_files, self.counter_duplicates))
+                "All files are processed: %d duplicates from %d files" % (
+                self.counter_duplicates, self.counter_all_files))
             self.log.info("Processed images: %d, videos: %d, unknown %d" % (
-                self.images_output_path, self.counter_video_files, self.counter_unknown_files))
+                self.counter_image_files, self.counter_video_files, self.counter_unknown_files))
             self.log.handlers = []
         except Exception as ex:
             self.log.handlers = []
