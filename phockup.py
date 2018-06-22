@@ -26,8 +26,15 @@ def main(argv):
     dir_format = os.path.sep.join(['%Y', '%m', '%d'])
 
     try:
-        opts, args = getopt.getopt(argv[2:], "d:r:mlhiv",
-                                   ["date=", "regex=", "move", "link", "help", "only-images", "only-videos"])
+        opts, args = getopt.getopt(argv[2:], "d:r:mlhivo",
+                                   ["date=",
+                                    "regex=",
+                                    "move",
+                                    "link",
+                                    "help",
+                                    "only-images",
+                                    "only-videos",
+                                    'output-name'])
     except getopt.GetoptError:
         help(version)
         sys.exit(2)
