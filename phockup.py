@@ -66,6 +66,8 @@ def main(argv):
             printer.line("Process only images with meta-information!")
 
         if opt in ("-o", "--output-name"):
+            if not arg:
+                printer.error("Output file name  format cannot be empty")
             output_file_name_format = arg
             printer.line("OutputFileName format: %s" % output_file_name_format)
 
