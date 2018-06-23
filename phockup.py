@@ -23,16 +23,18 @@ def main(argv):
     images_output_path = None
     videos_output_path = None
     unknown_output_path = None
+    log_file_name = None
     output_file_name_format = '%Y%m%d-%H%M%S'
     dir_format = os.path.sep.join(['%Y', '%m', '%d'])
 
     try:
-        opts, args = getopt.getopt(argv[1:], "d:r:o:i:u:v:mlh",
+        opts, args = getopt.getopt(argv[1:], "d:r:o:i:u:v:f:mlh",
                                    ["date=",
                                     "regex=",
                                     "move",
                                     "link",
                                     "help",
+                                    "log-filename=",
                                     "images-output=",
                                     "videos-output=",
                                     "unknown-output=",
@@ -67,6 +69,9 @@ def main(argv):
         if opt in ("-u", "--unknown-output"):
             unknown_output_path = arg
 
+        if opt in ("-f", "--log-filename"):
+            log_file_name = arg
+
         if opt in ("-o", "--output-name"):
             if not arg:
                 printer.error("Output file name format cannot be empty")
@@ -88,8 +93,6 @@ def main(argv):
         help(version)
         sys.exit(2)
 
-
-
     return Phockup(
         argv[0],
         dir_format=dir_format,
@@ -99,7 +102,8 @@ def main(argv):
         videos_output_path=videos_output_path,
         unknown_output_path=unknown_output_path,
         output_file_name_format=output_file_name_format,
-        date_regex=date_regex
+        date_regex=date_regex,
+        log_file_name=log_file_name
     )
 
 

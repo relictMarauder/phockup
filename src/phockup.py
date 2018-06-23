@@ -15,7 +15,7 @@ ignored_files = (".DS_Store", "Thumbs.db")
 
 class Phockup():
     def __init__(self, input_path, **args):
-        self.log = self.setup_logger()
+        self.log = self.setup_logger(args.get('log_file_name', None))
         self.counter_all_files = 0
         self.counter_video_files = 0
         self.counter_image_files = 0
@@ -46,7 +46,7 @@ class Phockup():
             self.walk_directory()
             self.log.info(
                 "All files are processed: %d duplicates from %d files" % (
-                self.counter_duplicates, self.counter_all_files))
+                    self.counter_duplicates, self.counter_all_files))
             self.log.info("Processed images: %d, videos: %d, unknown %d" % (
                 self.counter_image_files, self.counter_video_files, self.counter_unknown_files))
             self.log.handlers = []
@@ -94,7 +94,7 @@ class Phockup():
         screen_handler.setFormatter(formatter)
 
         if log_file_name is not None:
-            handler = logging.FileHandler('log.txt', mode='w')
+            handler = logging.FileHandler(log_file_name, mode='w')
             handler.setFormatter(formatter)
             logger.addHandler(handler)
 

@@ -124,6 +124,7 @@ pytest
 * Remove `[OUTPUTDIR]` parameter
 * Remove `-i | --only-images` parameter
 * Remote`-v | --only-vides` parameter
+* Add `-f | --log-filename` is file name of log file
 * Add `-i | --image-output` is the directory where your **sorted** photos will be stored. It could be a new not existing directory. 
 * Add `-v | --videos-output`  is the directory where your **sorted** videos will be stored. It could be a new not existing directory.
 * Add `-u | --unknown-output`  is the directory where your unknown files will be stored. It could be a new not existing directory.
@@ -131,7 +132,7 @@ pytest
 ##### `1.6.4-relict`
 * Add `-i | --only-images` flag to process ony files with image meta information
 * Add `-v | --only-vides` flag to process ony files with videos meta information
-* Add `-o | --output-name` specify output filename(w/o extension) format (default: '%Y%m%d-%H%M%S')
+* Add `-o | --output-name` is output filename(w/o extension) format (default: '%Y%m%d-%H%M%S')
 * By moving files instead of copy remove all empty folder
 * Add additional console outputs
 * Add test for delete empty input folders by move  

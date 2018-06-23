@@ -59,7 +59,10 @@ OPTIONS
     -u | --unknown-output
         Specify the output directory where your unknown files should be exported.
         If this output directory is not defined the process wall skipp all unknown files
-                
+
+    -f | --log-filename
+        Specify the file name for log output.
+
     -o | --output-name
         Specify output filename(w/o extension) format (default: '%Y%m%d-%H%M%S')            
         
