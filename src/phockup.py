@@ -94,7 +94,7 @@ class Phockup():
         screen_handler.setFormatter(formatter)
 
         if log_file_name is not None:
-            handler = logging.FileHandler(log_file_name, mode='w')
+            handler = logging.FileHandler(log_file_name, mode='a')
             handler.setFormatter(formatter)
             logger.addHandler(handler)
 
