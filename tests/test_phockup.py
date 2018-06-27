@@ -52,27 +52,40 @@ def test_removing_trailing_slash_for_input_output(mocker):
 
 def test_error_for_missing_input_dir(mocker, capsys):
     mocker.patch('sys.exit')
+    if os.path.isfile('test-output.log'):
+        os.remove('test-output.log')
     Phockup('in',
             images_output_path='out',
             videos_output_path='out',
-            unknown_output_path='out/unknown')
+            unknown_output_path='out/unknown',
+            log_file_name='test-output.log')
     sys.exit.assert_called_once_with(1)
-    assert any(item.find('Input directory "in" does not exist') for item in capsys.readouterr())
+    output_log = [line.rstrip('\n') for line in open('test-output.log')]
+    os.remove('test-output.log')
+    assert any(item.find('Input directory "in" does not exist') > 0 for item in output_log)
 
 
 def test_error_for_no_write_access_when_creating_output_dir(mocker, capsys):
     mocker.patch.object(Phockup, 'walk_directory')
     mocker.patch('os.makedirs', side_effect=Exception("No write access"))
     mocker.patch('sys.exit')
-    Phockup('input', videos_output_path='/root/phockup')
+    if os.path.isfile('test-output.log'):
+        os.remove('test-output.log')
+    Phockup('input', videos_output_path='/root/phockup', log_file_name='test-output.log')
     sys.exit.assert_called_once_with(1)
-    assert any(item.find('No write access') for item in capsys.readouterr())
-    Phockup('input', images_output_path='/root/phockup')
+    output_log = [line.rstrip('\n') for line in open('test-output.log')]
+    os.remove('test-output.log')
+    assert any(item.find('No write access') > 0 for item in output_log)
+    Phockup('input', images_output_path='/root/phockup', log_file_name='test-output.log')
     sys.exit.assert_has_calls([call(1), call(1)])
-    assert any(item.find('No write access') for item in capsys.readouterr())
-    Phockup('input', unknown_output_path='/root/phockup')
+    output_log = [line.rstrip('\n') for line in open('test-output.log')]
+    os.remove('test-output.log')
+    assert any(item.find('No write access') > 0 for item in output_log)
+    Phockup('input', unknown_output_path='/root/phockup', log_file_name='test-output.log')
     sys.exit.assert_has_calls([call(1), call(1), call(1)])
-    assert any(item.find('No write access') for item in capsys.readouterr())
+    output_log = [line.rstrip('\n') for line in open('test-output.log')]
+    os.remove('test-output.log')
+    assert any(item.find('No write access') > 0 for item in output_log)
 
 
 def test_walking_directory():
@@ -170,13 +183,21 @@ def test_process_link_to_file_with_filename_date(mocker):
 
 def test_process_broken_link(mocker, capsys):
     shutil.rmtree('output', ignore_errors=True)
+    if os.path.isfile('test-output.log'):
+        os.remove('test-output.log')
     mocker.patch.object(Phockup, 'check_directories')
     mocker.patch.object(Phockup, 'walk_directory')
-    Phockup('input',
-            images_output_path='output',
-            videos_output_path='output',
-            unknown_output_path='output/unknown').process_file("input/not_a_file.jpg")
-    assert any(item.find( 'skipped, no such file or directory') for item in capsys.readouterr())
+    phockup = Phockup('input',
+                      images_output_path='output',
+                      videos_output_path='output',
+                      unknown_output_path='output/unknown')
+
+    phockup.log = phockup.setup_logger('test-output.log')
+    phockup.process_file("input/not_a_file.jpg")
+    phockup.log.handlers = []
+    output_log = [line.rstrip('\n') for line in open('test-output.log')]
+    os.remove('test-output.log')
+    assert any(item.find('skipped, no such file or directory') > 0 for item in output_log)
     shutil.rmtree('output', ignore_errors=True)
 
 
@@ -189,8 +210,14 @@ def test_process_broken_link_move(mocker, capsys):
                       videos_output_path='output',
                       unknown_output_path='output/unknown',
                       move=True)
+    if os.path.isfile('test-output.log'):
+        os.remove('test-output.log')
+    phockup.log = phockup.setup_logger('test-output.log')
     phockup.process_file("input/not_a_file.jpg")
-    assert any(item.find('skipped, no such file or directory') for item in capsys.readouterr())
+    phockup.log.handlers = []
+    output_log = [line.rstrip('\n') for line in open('test-output.log')]
+    os.remove('test-output.log')
+    assert any(item.find('skipped, no such file or directory') > 0 for item in output_log)
     shutil.rmtree('output', ignore_errors=True)
 
 
@@ -319,10 +346,14 @@ def test_process_exists_same(mocker, capsys):
         images_output_path='output',
         videos_output_path='output',
         unknown_output_path='output/unknown')
+    phockup.log = phockup.setup_logger('test-output.log')
     phockup.process_file("input/exif.jpg")
     assert os.path.isfile("output/2017/01/01/20170101-010101.jpg")
     phockup.process_file("input/exif.jpg")
-    assert any(item.find( 'skipped, duplicated file') for item in capsys.readouterr())
+    phockup.log.handlers = []
+    output_log = [line.rstrip('\n') for line in open('test-output.log')]
+    os.remove('test-output.log')
+    assert any(item.find('skipped, duplicated file') > 1 for item in output_log)
     shutil.rmtree('output', ignore_errors=True)
 
 
