@@ -13,6 +13,7 @@ from src.exif import Exif
 ignored_files = (".DS_Store", "Thumbs.db")
 ignored_folders = (".@__thumb")
 
+
 class Phockup():
     def __init__(self, input_path, **args):
         self.log = self.setup_logger(args.get('log_file_name', None))
@@ -286,7 +287,7 @@ class Phockup():
 
         while True:
             if os.path.isfile(target_file):
-                if filecmp.cmp(file, target_file):
+                if os.path.getsize(file) == os.path.getsize(target_file) and filecmp.cmp(file, target_file):
                     # if self.checksum(file) == self.checksum(target_file):
                     self.counter_duplicates += 1
                     if self.move:
