@@ -11,7 +11,7 @@ from src.date import Date
 from src.exif import Exif
 
 ignored_files = (".DS_Store", "Thumbs.db")
-
+ignored_folders = (".@__thumb")
 
 class Phockup():
     def __init__(self, input_path, **args):
@@ -148,9 +148,14 @@ class Phockup():
         Walk input directory recursively and call process_file for each file except the ignored ones
         """
         for root, dirs, files in os.walk(self.input_path):
+            if (root in ignored_folders):
+                self.log.info("skip foler: '%s' " % root)
+                continue
+
             files.sort()
             for filename in files:
                 if filename in ignored_files:
+                    self.log.info("skip file: '%s' " % filename)
                     continue
 
                 file = os.path.join(root, filename)
