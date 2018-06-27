@@ -235,14 +235,14 @@ class Phockup():
         except:
             return os.path.basename(file)
 
-    def is_file_must_be_processed(self, exif_data):
+    def is_file_must_be_processed(self, file, exif_data):
         is_known_type = False
         if exif_data \
                 and 'MIMEType' in exif_data \
                 and self.is_video(exif_data['MIMEType']):
             is_known_type = True
             if self.videos_output_path is None:
-                self.log.info(' => skipped, output path for video file type is not defined')
+                self.log.info(os.path.basename(file) + ' => skipped, output path for video file type is not defined')
                 return False
 
         if exif_data \
@@ -250,12 +250,12 @@ class Phockup():
                 and self.is_image(exif_data['MIMEType']):
             is_known_type = True
             if self.images_output_path is None:
-                self.log.info(' => skipped, output path for image file type is not defined')
+                self.log.info(os.path.basename(file) + ' => skipped, output path for image file type is not defined')
                 return False
 
         if not is_known_type:
             if self.unknown_output_path is None:
-                self.log.info(' => skipped, output path for unknown file type is not defined')
+                self.log.info(os.path.basename(file) + ' => skipped, output path for unknown file type is not defined')
                 return False
 
         return True
@@ -271,7 +271,7 @@ class Phockup():
 
         exif_data = Exif(file).data()
 
-        if not self.is_file_must_be_processed(exif_data):
+        if not self.is_file_must_be_processed(file, exif_data):
             return
 
         output, target_file_name, target_file_path = self.get_file_name_and_path(file, exif_data)
