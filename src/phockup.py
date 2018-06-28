@@ -5,13 +5,14 @@ import os
 import re
 import shutil
 import sys
+import traceback
 import logging
 
 from src.date import Date
 from src.exif import Exif
 
 ignored_files = (".DS_Store", "Thumbs.db")
-ignored_folders = (".@__thumb")
+ignored_folders = ".@__thumb",
 
 
 class Phockup():
@@ -52,6 +53,7 @@ class Phockup():
                 self.counter_image_files, self.counter_video_files, self.counter_unknown_files))
             self.log.handlers = []
         except Exception as ex:
+            self.log.exception(ex, exc_info=True)
             self.log.handlers = []
             sys.exit(1)
 
@@ -249,15 +251,24 @@ class Phockup():
             is_known_type = True
             if self.videos_output_path is None:
                 self.log.info(os.path.basename(file) + ' => skipped, output path for video file type is not defined')
-                return False
 
         if exif_data \
+                and not is_known_type \
                 and 'MIMEType' in exif_data \
                 and self.is_image(exif_data['MIMEType']):
             is_known_type = True
             if self.images_output_path is None:
                 self.log.info(os.path.basename(file) + ' => skipped, output path for image file type is not defined')
-                return False
+
+        if is_known_type:
+            date = Date(file).from_exif(exif_data, self.date_regex)
+            if date is None:
+                is_known_type = False
+            else:
+                try:
+                    date['date'].date().strftime(self.dir_format)
+                except:
+                    is_known_type = False
 
         if not is_known_type:
             if self.unknown_output_path is None:
