@@ -170,7 +170,7 @@ def test_video_file_without_exif_date_with_parsable_name(mocker):
         "MIMEType": "video/mp4"
     }
     source_file = SourceFile(
-        output_file_name_format="'%Y-%m-%d %H:%M:%S'",
+        output_file_name_format="%Y-%m-%d %H:%M:%S",
         date_regex=None,
         dir_format="%Y/%m",
         videos_output_path=videos_output_path,
@@ -184,7 +184,7 @@ def test_video_file_without_exif_date_with_parsable_name(mocker):
     assert not source_file.skipped
 
     source_file = SourceFile(
-        output_file_name_format="'%Y-%m-%d %H:%M:%S'",
+        output_file_name_format="%Y-%m-%d %H:%M:%S",
         date_regex=re.compile(
             'invalid regexp'),
         dir_format="%Y/%m",
@@ -199,7 +199,7 @@ def test_video_file_without_exif_date_with_parsable_name(mocker):
     assert not source_file.skipped
 
     source_file = SourceFile(
-        output_file_name_format="'%Y-%m-%d %H:%M:%S'",
+        output_file_name_format="%Y-%m-%d %H:%M:%S",
         date_regex=re.compile(
             'invalid regexp'),
         dir_format="%Y/%m",

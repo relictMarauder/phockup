@@ -24,17 +24,17 @@ class SourceFile:
                  dir_format: str = os.path.sep.join(['%Y', '%m', '%d'])
                  ):
         self.type = SourceFileType.UNKNOWN
-        self.exif_data: Exif = Exif(file_path).data()
-        self.file_path: str = file_path
+        self.exif_data = Exif(file_path).data()
+        self.file_path = file_path
         self.date_regex = date_regex
         self.images_output_path = images_output_path
         self.videos_output_path = videos_output_path
         self.unknown_output_path = unknown_output_path
         self.dir_format = dir_format
         self.output_file_name_format = output_file_name_format
-        self.date: Date = None
-        self.output_path: str = None
-        self.skipped: bool = True
+        self.date = None
+        self.output_path = None
+        self.skipped = True
         self._target_file_name = None
         self._target_file_path = None
         self.__fill_phockup_file()
@@ -112,7 +112,7 @@ class SourceFile:
             try:
                 filename = self.date['date'].strftime(self.output_file_name_format)
                 if self.date['subseconds']:
-                    filename += self.date['subseconds']
+                    filename += "." + self.date['subseconds']
                 return filename + os.path.splitext(self.file_path)[1]
             except:
                 pass

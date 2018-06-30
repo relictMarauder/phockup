@@ -12,8 +12,6 @@ ignored_files = (".DS_Store", "Thumbs.db")
 ignored_folders = (".@__thumb")
 
 
-
-
 class Phockup():
     def __init__(self, input_path, **args):
         self.log = self.setup_logger(args.get('log_file_name', None))
@@ -151,8 +149,8 @@ class Phockup():
         Walk input directory recursively and call process_file for each file except the ignored ones
         """
         for root, dirs, files in os.walk(self.input_path):
-            if (os.path.basename(root) in ignored_folders):
-                self.log.info("skip foler: '%s' " % root)
+            if os.path.basename(root) in ignored_folders:
+                self.log.info("skip folder: '%s' " % root)
                 continue
 
             files.sort()
@@ -161,14 +159,13 @@ class Phockup():
                     self.log.info("skip file: '%s' " % filename)
                     continue
 
-                file_path: str = os.path.join(root, filename)
+                file_path = os.path.join(root, filename)
                 self.process_file(file_path)
 
             if self.move and len(os.listdir(root)) == 0:
                 # remove all empty directories in PATH
                 self.log.info('Deleting empty dirs in path: {}'.format(root))
                 os.removedirs(root)
-
 
     def process_file(self, file_path: str):
         """
@@ -203,7 +200,6 @@ class Phockup():
         if not os.path.isdir(phockup_file.output_path):
             os.makedirs(phockup_file.output_path)
         self.counter_processed_files += 1
-
 
         suffix = 1
         target_file_path = phockup_file.target_file_path()
