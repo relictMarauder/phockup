@@ -1,3 +1,4 @@
+import re
 import shutil
 import sys
 import os
@@ -91,65 +92,89 @@ def test_error_for_no_write_access_when_creating_output_dir(mocker, capsys):
 def test_walking_directory():
     shutil.rmtree('output', ignore_errors=True)
     Phockup('input',
-            images_output_path='output',
-            videos_output_path='output',
-            unknown_output_path='output/unknown')
-    dir1 = 'output/2017/01/01'
-    dir2 = 'output/2017/10/06'
+            date_regex=re.compile(
+                '.*[_-](?P<year>\d{4})(?P<month>\d{2})(?P<day>\d{2})[_-]?(?P<hour>\d{2})(?P<minute>\d{2})(?P<second>\d{2})'),
+            images_output_path=os.path.join('output', 'images'),
+            videos_output_path=os.path.join('output', 'videos'),
+            unknown_output_path=os.path.join('output', 'unknown'))
+    dir1 = 'output/images/2017/01/01'
+    dir12 = 'output/images/2017/10/06'
+    dir2 = 'output/videos/2017/01/01'
     dir3 = 'output/unknown'
     assert os.path.isdir(dir1)
+    assert os.path.isdir(dir12)
     assert os.path.isdir(dir2)
     assert os.path.isdir(dir3)
-    assert len([name for name in os.listdir(dir1) if os.path.isfile(os.path.join(dir1, name))]) == 3
+    assert len([name for name in os.listdir(dir1) if os.path.isfile(os.path.join(dir1, name))]) == 2
+    assert len([name for name in os.listdir(dir12) if os.path.isfile(os.path.join(dir12, name))]) == 1
     assert len([name for name in os.listdir(dir2) if os.path.isfile(os.path.join(dir2, name))]) == 1
-    if os.name == 'nt':
-        assert len([name for name in os.listdir(dir3) if os.path.isfile(os.path.join(dir3, name))]) == 2
-    else:
-        assert len([name for name in os.listdir(dir3) if os.path.isfile(os.path.join(dir3, name))]) == 1
+    assert len([name for name in os.listdir(dir3) if os.path.isfile(os.path.join(dir3, name))]) == 1
     shutil.rmtree('output', ignore_errors=True)
 
 
-def test_is_image_or_video(mocker):
-    mocker.patch.object(Phockup, 'check_directories')
-    assert Phockup('in',
-                   images_output_path='.',
-                   videos_output_path='.',
-                   unknown_output_path='./unknown').is_image("image/jpeg")
-    assert Phockup('in',
-                   images_output_path='.',
-                   videos_output_path='.',
-                   unknown_output_path='./unknown').is_video("video/jpeg")
-    assert not Phockup('in',
-                       images_output_path='.',
-                       videos_output_path='.',
-                       unknown_output_path='./unknown').is_video("foo/bar")
-    assert not Phockup('in',
-                       images_output_path='.',
-                       videos_output_path='.',
-                       unknown_output_path='./unknown').is_image("foo/bar")
+def test_walking_directory_without_images():
+    shutil.rmtree('output', ignore_errors=True)
+    Phockup('input',
+            date_regex=re.compile(
+                '.*[_-](?P<year>\d{4})(?P<month>\d{2})(?P<day>\d{2})[_-]?(?P<hour>\d{2})(?P<minute>\d{2})(?P<second>\d{2})'),
+            images_output_path=None,
+            videos_output_path=os.path.join('output', 'videos'),
+            unknown_output_path=os.path.join('output', 'unknown'))
+    dir1 = 'output/images/2017/01/01'
+    dir12 = 'output/images/2017/10/06'
+    dir2 = 'output/videos/2017/01/01'
+    dir3 = 'output/unknown'
+    assert not os.path.isdir(dir1)
+    assert not os.path.isdir(dir12)
+    assert os.path.isdir(dir2)
+    assert os.path.isdir(dir3)
+    assert len([name for name in os.listdir(dir2) if os.path.isfile(os.path.join(dir2, name))]) == 1
+    assert len([name for name in os.listdir(dir3) if os.path.isfile(os.path.join(dir3, name))]) == 1
+    shutil.rmtree('output', ignore_errors=True)
 
 
-def test_get_file_name(mocker):
-    mocker.patch.object(Phockup, 'check_directories')
-    mocker.patch.object(Phockup, 'walk_directory')
-    date = {
-        "date": datetime(2017, 1, 1, 1, 1, 1),
-        "subseconds": "20"
-    }
+def test_walking_directory_without_videos():
+    shutil.rmtree('output', ignore_errors=True)
+    Phockup('input',
+            date_regex=re.compile(
+                '.*[_-](?P<year>\d{4})(?P<month>\d{2})(?P<day>\d{2})[_-]?(?P<hour>\d{2})(?P<minute>\d{2})(?P<second>\d{2})'),
+            images_output_path=os.path.join('output', 'images'),
+            videos_output_path=None,
+            unknown_output_path=os.path.join('output', 'unknown'))
+    dir1 = 'output/images/2017/01/01'
+    dir12 = 'output/images/2017/10/06'
+    dir2 = 'output/videos/2017/01/01'
+    dir3 = 'output/unknown'
+    assert os.path.isdir(dir1)
+    assert os.path.isdir(dir12)
+    assert not os.path.isdir(dir2)
+    assert os.path.isdir(dir3)
+    assert len([name for name in os.listdir(dir1) if os.path.isfile(os.path.join(dir1, name))]) == 2
+    assert len([name for name in os.listdir(dir12) if os.path.isfile(os.path.join(dir12, name))]) == 1
+    assert len([name for name in os.listdir(dir3) if os.path.isfile(os.path.join(dir3, name))]) == 1
+    shutil.rmtree('output', ignore_errors=True)
 
-    assert Phockup('in',
-                   images_output_path='out',
-                   videos_output_path='out',
-                   unknown_output_path='out/unknown').get_file_name("Bar/Foo.jpg", date) == "20170101-01010120.jpg"
 
-
-def test_get_file_name_is_original_on_exception(mocker):
-    mocker.patch.object(Phockup, 'check_directories')
-    mocker.patch.object(Phockup, 'walk_directory')
-    assert Phockup('in',
-                   images_output_path='out',
-                   videos_output_path='out',
-                   unknown_output_path='out/unknown').get_file_name("Bar/Foo.jpg", None) == "Foo.jpg"
+def test_walking_directory_without_unknown():
+    shutil.rmtree('output', ignore_errors=True)
+    Phockup('input',
+            date_regex=re.compile(
+                '.*[_-](?P<year>\d{4})(?P<month>\d{2})(?P<day>\d{2})[_-]?(?P<hour>\d{2})(?P<minute>\d{2})(?P<second>\d{2})'),
+            images_output_path=os.path.join('output', 'images'),
+            videos_output_path=os.path.join('output', 'videos'),
+            unknown_output_path=None)
+    dir1 = 'output/images/2017/01/01'
+    dir12 = 'output/images/2017/10/06'
+    dir2 = 'output/videos/2017/01/01'
+    dir3 = 'output/unknown'
+    assert os.path.isdir(dir1)
+    assert os.path.isdir(dir12)
+    assert os.path.isdir(dir2)
+    assert not os.path.isdir(dir3)
+    assert len([name for name in os.listdir(dir1) if os.path.isfile(os.path.join(dir1, name))]) == 2
+    assert len([name for name in os.listdir(dir12) if os.path.isfile(os.path.join(dir12, name))]) == 1
+    assert len([name for name in os.listdir(dir2) if os.path.isfile(os.path.join(dir2, name))]) == 1
+    shutil.rmtree('output', ignore_errors=True)
 
 
 def test_process_file_with_filename_date(mocker):
@@ -161,6 +186,8 @@ def test_process_file_with_filename_date(mocker):
         "MIMEType": "image/jpeg"
     }
     Phockup('input',
+            date_regex=re.compile(
+                '.*[_-](?P<year>\d{4})(?P<month>\d{2})(?P<day>\d{2})[_-]?(?P<hour>\d{2})(?P<minute>\d{2})(?P<second>\d{2})'),
             images_output_path='output',
             videos_output_path='output',
             unknown_output_path='output/unknown').process_file("input/date_20170101_010101.jpg")
@@ -296,6 +323,8 @@ def test_process_move(mocker):
         "MIMEType": "image/jpeg"
     }
     phockup = Phockup('input',
+                      date_regex=re.compile(
+                          '.*[_-](?P<year>\d{4})(?P<month>\d{2})(?P<day>\d{2})[_-]?(?P<hour>\d{2})(?P<minute>\d{2})(?P<second>\d{2})'),
                       images_output_path='output',
                       videos_output_path='output',
                       unknown_output_path='output/unknown'
@@ -320,6 +349,8 @@ def test_process_link(mocker):
         "MIMEType": "image/jpeg"
     }
     phockup = Phockup('input',
+                      date_regex=re.compile(
+                          '.*[_-](?P<year>\d{4})(?P<month>\d{2})(?P<day>\d{2})[_-]?(?P<hour>\d{2})(?P<minute>\d{2})(?P<second>\d{2})'),
                       images_output_path='output',
                       videos_output_path='output',
                       unknown_output_path='output/unknown'

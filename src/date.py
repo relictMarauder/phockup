@@ -39,7 +39,7 @@ class Date():
         if datestr:
             return self.from_datestring(datestr)
         else:
-            return self.from_filename(user_regex)
+            return self.from_filename(user_regex) if user_regex else None
 
     def from_datestring(self, datestr):
         datestr = datestr.split('.')

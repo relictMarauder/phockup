@@ -2,17 +2,16 @@
 import filecmp
 import hashlib
 import os
-import re
 import shutil
 import sys
-import traceback
 import logging
-
-from src.date import Date
 from src.exif import Exif
+from src.source_file import SourceFile, SourceFileType
 
 ignored_files = (".DS_Store", "Thumbs.db")
-ignored_folders = ".@__thumb",
+ignored_folders = (".@__thumb")
+
+
 
 
 class Phockup():
@@ -23,6 +22,7 @@ class Phockup():
         self.counter_image_files = 0
         self.counter_unknown_files = 0
         self.counter_duplicates = 0
+        self.counter_processed_files = 0
         self.log.info("Start processing....")
         input_path = os.path.expanduser(input_path)
 
@@ -48,9 +48,9 @@ class Phockup():
             self.walk_directory()
             self.log.info(
                 "All files are processed: %d duplicates from %d files" % (
-                    self.counter_duplicates, self.counter_all_files))
-            self.log.info("Processed images: %d, videos: %d, unknown %d" % (
-                self.counter_image_files, self.counter_video_files, self.counter_unknown_files))
+                    self.counter_duplicates, self.counter_processed_files))
+            self.log.info("Processed images: %d, videos: %d, unknown %d from %d" % (
+                self.counter_image_files, self.counter_video_files, self.counter_unknown_files, self.counter_all_files))
             self.log.handlers = []
         except Exception as ex:
             self.log.exception(ex, exc_info=True)
@@ -161,209 +161,87 @@ class Phockup():
                     self.log.info("skip file: '%s' " % filename)
                     continue
 
-                file = os.path.join(root, filename)
-                self.process_file(file)
+                file_path: str = os.path.join(root, filename)
+                self.process_file(file_path)
 
             if self.move and len(os.listdir(root)) == 0:
                 # remove all empty directories in PATH
                 self.log.info('Deleting empty dirs in path: {}'.format(root))
                 os.removedirs(root)
 
-    @staticmethod
-    def checksum(file):
-        """
-        Calculate checksum for a file.
-        Used to match if duplicated file name is actually a duplicated file
-        """
 
-        block_size = 65536
-        sha256 = hashlib.sha256()
-        with open(file, 'rb') as f:
-            for block in iter(lambda: f.read(block_size), b''):
-                sha256.update(block)
-        return sha256.hexdigest()
-
-    @staticmethod
-    def is_image(mime_type):
-        """
-        Use mimetype to determine if the file is an image
-        """
-        pattern = re.compile('^(image/.+|application/vnd.adobe.photoshop)$')
-        if pattern.match(mime_type):
-            return True
-        return False
-
-    @staticmethod
-    def is_video(mime_type):
-        """
-        Use mimetype to determine if the file is an video
-        """
-        pattern = re.compile('^(video/.+)$')
-        if pattern.match(mime_type):
-            return True
-        return False
-
-    def get_output_dir(self, date=None, output_path=None, unknown_output_path=None):
-        """
-        Generate output directory path based on the extracted date and formatted using dir_format
-        If date is missing from the exifdata the file is going to "unknown" directory
-        """
-        if output_path is None:
-            self.log.error("The output file is not defined")
-            raise Exception()
-
-        if date is None:
-            if unknown_output_path is None:
-                return None
-            path = [unknown_output_path]
-        else:
-            try:
-                path = [output_path, date['date'].date().strftime(self.dir_format)]
-            except:
-                if unknown_output_path is None:
-                    return None
-                path = output_path
-
-        full_path = os.path.sep.join(path)
-
-        if not os.path.isdir(full_path):
-            os.makedirs(full_path)
-
-        return full_path
-
-    def get_file_name(self, file, date):
-        """
-        Generate file name based on exif data unless it is missing. Then use original file name
-        """
-        try:
-            filename = date['date'].strftime(self.output_file_name_format)
-            if date['subseconds']:
-                filename += date['subseconds']
-            return filename + os.path.splitext(file)[1]
-        except:
-            return os.path.basename(file)
-
-    def is_file_must_be_processed(self, file, exif_data):
-        is_known_type = False
-        if exif_data \
-                and 'MIMEType' in exif_data \
-                and self.is_video(exif_data['MIMEType']):
-            is_known_type = True
-            if self.videos_output_path is None:
-                self.log.info(os.path.basename(file) + ' => skipped, output path for video file type is not defined')
-
-        if exif_data \
-                and not is_known_type \
-                and 'MIMEType' in exif_data \
-                and self.is_image(exif_data['MIMEType']):
-            is_known_type = True
-            if self.images_output_path is None:
-                self.log.info(os.path.basename(file) + ' => skipped, output path for image file type is not defined')
-
-        if is_known_type:
-            date = Date(file).from_exif(exif_data, self.date_regex)
-            if date is None:
-                is_known_type = False
-            else:
-                try:
-                    date['date'].date().strftime(self.dir_format)
-                except:
-                    is_known_type = False
-
-        if not is_known_type:
-            if self.unknown_output_path is None:
-                self.log.info(os.path.basename(file) + ' => skipped, output path for unknown file type is not defined')
-                return False
-
-        return True
-
-    def process_file(self, file):
+    def process_file(self, file_path: str):
         """
         Process the file using the selected strategy
         If file is .xmp skip it so process_xmp method can handle it
         """
-        if str.endswith(file, '.xmp'):
+        if str.endswith(file_path, '.xmp'):
             return None
-        log_line = file
+        log_line = file_path
 
-        exif_data = Exif(file).data()
+        phockup_file = SourceFile(
+            output_file_name_format=self.output_file_name_format,
+            dir_format=self.dir_format,
+            date_regex=self.date_regex,
+            images_output_path=self.images_output_path,
+            videos_output_path=self.videos_output_path,
+            unknown_output_path=self.unknown_output_path,
+            file_path=file_path
+        )
+        if phockup_file.type == SourceFileType.UNKNOWN:
+            self.counter_unknown_files += 1
+        elif phockup_file.type == SourceFileType.VIDEO:
+            self.counter_video_files += 1
+        elif phockup_file.type == SourceFileType.IMAGE:
+            self.counter_image_files += 1
+        self.counter_all_files += 1
 
-        if not self.is_file_must_be_processed(file, exif_data):
+        if phockup_file.skipped:
+            self.log.info(log_line + " => skipped, the output dir for %s is not defined" % phockup_file.type.name)
             return
 
-        output, target_file_name, target_file_path = self.get_file_name_and_path(file, exif_data)
+        if not os.path.isdir(phockup_file.output_path):
+            os.makedirs(phockup_file.output_path)
+        self.counter_processed_files += 1
+
 
         suffix = 1
-        target_file = target_file_path
-
+        target_file_path = phockup_file.target_file_path()
         while True:
-            if os.path.isfile(target_file):
-                if os.path.getsize(file) == os.path.getsize(target_file) and filecmp.cmp(file, target_file):
+            if os.path.isfile(target_file_path):
+                if os.path.getsize(file_path) == os.path.getsize(target_file_path) \
+                        and filecmp.cmp(file_path, target_file_path):
                     # if self.checksum(file) == self.checksum(target_file):
                     self.counter_duplicates += 1
                     if self.move:
-                        os.remove(file)
-                        self.log.info(log_line + ' => remove, duplicated file')
+                        os.remove(file_path)
+                        self.log.info(log_line + " => remove, duplicated file('%s')" % target_file_path)
                     else:
-                        self.log.info(log_line + ' => skipped, duplicated file')
+                        self.log.info(log_line + " => skipped, duplicated file ('%s')" % target_file_path)
                     break
             else:
                 if self.move:
                     try:
-                        shutil.move(file, target_file)
+                        shutil.move(file_path, target_file_path)
                     except FileNotFoundError:
                         self.log.info(log_line + ' => skipped, no such file or directory')
                         break
                 elif self.link:
-                    os.link(file, target_file)
+                    os.link(file_path, target_file_path)
                 else:
                     try:
-                        shutil.copy2(file, target_file)
+                        shutil.copy2(file_path, target_file_path)
                     except FileNotFoundError:
                         self.log.info(log_line + ' => skipped, no such file or directory')
                         break
 
-                self.log.info(log_line + (' => %s' % target_file))
-                self.process_xmp(file, target_file_name, suffix, output)
+                self.log.info(log_line + (' => %s' % target_file_path))
+                self.process_xmp(file_path, phockup_file.target_file_name(), suffix, phockup_file.output_path)
                 break
 
             suffix += 1
             target_split = os.path.splitext(target_file_path)
-            target_file = "%s-%03d%s" % (target_split[0], suffix, target_split[1])
-
-    def get_file_name_and_path(self, file, exif_data):
-        """
-        Returns target file name and path
-        """
-        date = None
-        if exif_data \
-                and 'MIMEType' in exif_data \
-                and self.images_output_path is not None \
-                and self.is_image(exif_data['MIMEType']):
-            date = Date(file).from_exif(exif_data, self.date_regex)
-            output = self.get_output_dir(date=date,
-                                         output_path=self.images_output_path,
-                                         unknown_output_path=self.unknown_output_path)
-            self.counter_image_files += 1
-        elif exif_data \
-                and 'MIMEType' in exif_data \
-                and self.videos_output_path is not None \
-                and self.is_video(exif_data['MIMEType']):
-            date = Date(file).from_exif(exif_data, self.date_regex)
-            output = self.get_output_dir(date=date,
-                                         output_path=self.videos_output_path,
-                                         unknown_output_path=self.unknown_output_path)
-            self.counter_video_files += 1
-        else:
-            output = self.get_output_dir(output_path=self.unknown_output_path,
-                                         unknown_output_path=self.unknown_output_path)
-
-            self.counter_unknown_files += 1
-        self.counter_all_files += 1
-        target_file_name = self.get_file_name(file, date).lower() if date else os.path.basename(file)
-        target_file_path = os.path.sep.join([output, target_file_name])
-
-        return output, target_file_name, target_file_path
+            target_file_path = "%s-%03d%s" % (target_split[0], suffix, target_split[1])
 
     def process_xmp(self, file, file_name, suffix, output):
         """
