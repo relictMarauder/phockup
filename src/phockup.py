@@ -201,8 +201,9 @@ class Phockup():
             os.makedirs(phockup_file.output_path)
         self.counter_processed_files += 1
 
-        suffix = 1
-        target_file_path = phockup_file.target_file_path()
+        suffix = 0
+        base_target_file_path = phockup_file.target_file_path()
+        target_file_path = base_target_file_path
         while True:
             if os.path.isfile(target_file_path):
                 if os.path.getsize(file_path) == os.path.getsize(target_file_path) \
@@ -236,7 +237,7 @@ class Phockup():
                 break
 
             suffix += 1
-            target_split = os.path.splitext(target_file_path)
+            target_split = os.path.splitext(base_target_file_path)
             target_file_path = "%s-%03d%s" % (target_split[0], suffix, target_split[1])
 
     def process_xmp(self, file, file_name, suffix, output):
