@@ -27,7 +27,7 @@ class Date():
                         date_object["hour"], date_object["minute"], date_object["second"])
 
     def from_exif(self, exif, user_regex=None):
-        keys = ['SubSecCreateDate', 'SubSecDateTimeOriginal', 'CreateDate', 'DateTimeOriginal']
+        keys = ['SubSecCreateDate', 'SubSecDateTimeOriginal', 'CreateDate', 'DateTimeOriginal', 'TimeStamp']
 
         datestr = None
 
