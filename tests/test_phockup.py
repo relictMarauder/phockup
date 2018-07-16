@@ -105,7 +105,7 @@ def test_walking_directory():
     assert os.path.isdir(dir12)
     assert os.path.isdir(dir2)
     assert os.path.isdir(dir3)
-    assert len([name for name in os.listdir(dir1) if os.path.isfile(os.path.join(dir1, name))]) == 2
+    assert len([name for name in os.listdir(dir1) if os.path.isfile(os.path.join(dir1, name))]) == 4
     assert len([name for name in os.listdir(dir12) if os.path.isfile(os.path.join(dir12, name))]) == 1
     assert len([name for name in os.listdir(dir2) if os.path.isfile(os.path.join(dir2, name))]) == 1
     assert len([name for name in os.listdir(dir3) if os.path.isfile(os.path.join(dir3, name))]) == 1
@@ -149,7 +149,7 @@ def test_walking_directory_without_videos():
     assert os.path.isdir(dir12)
     assert not os.path.isdir(dir2)
     assert os.path.isdir(dir3)
-    assert len([name for name in os.listdir(dir1) if os.path.isfile(os.path.join(dir1, name))]) == 2
+    assert len([name for name in os.listdir(dir1) if os.path.isfile(os.path.join(dir1, name))]) == 4
     assert len([name for name in os.listdir(dir12) if os.path.isfile(os.path.join(dir12, name))]) == 1
     assert len([name for name in os.listdir(dir3) if os.path.isfile(os.path.join(dir3, name))]) == 1
     shutil.rmtree('output', ignore_errors=True)
@@ -171,7 +171,7 @@ def test_walking_directory_without_unknown():
     assert os.path.isdir(dir12)
     assert os.path.isdir(dir2)
     assert not os.path.isdir(dir3)
-    assert len([name for name in os.listdir(dir1) if os.path.isfile(os.path.join(dir1, name))]) == 2
+    assert len([name for name in os.listdir(dir1) if os.path.isfile(os.path.join(dir1, name))]) == 4
     assert len([name for name in os.listdir(dir12) if os.path.isfile(os.path.join(dir12, name))]) == 1
     assert len([name for name in os.listdir(dir2) if os.path.isfile(os.path.join(dir2, name))]) == 1
     shutil.rmtree('output', ignore_errors=True)
@@ -192,6 +192,22 @@ def test_process_file_with_filename_date(mocker):
             videos_output_path='output',
             unknown_output_path='output/unknown').process_file("input/date_20170101_010101.jpg")
     assert os.path.isfile("output/2017/01/01/20170101-010101.jpg")
+    shutil.rmtree('output', ignore_errors=True)
+
+def test_process_file_with_duplicate(mocker):
+    shutil.rmtree('output', ignore_errors=True)
+    mocker.patch.object(Phockup, 'check_directories')
+    mocker.patch.object(Phockup, 'walk_directory')
+    phockup = Phockup('input',
+            images_output_path='output',
+            videos_output_path='output',
+            unknown_output_path='output/unknown')
+    phockup.process_file("input/exif.jpg")
+    phockup.process_file("input/exif_1.jpg")
+    phockup.process_file("input/exif_2.jpg")
+    assert os.path.isfile("output/2017/01/01/20170101-010101.jpg")
+    assert os.path.isfile("output/2017/01/01/20170101-010101-001.jpg")
+    assert os.path.isfile("output/2017/01/01/20170101-010101-002.jpg")
     shutil.rmtree('output', ignore_errors=True)
 
 
@@ -403,7 +419,7 @@ def test_process_same_date_different_files_rename(mocker):
         "CreateDate": "2017:01:01 01:01:01"
     }
     phockup.process_file("input/date_20170101_010101.jpg")
-    assert os.path.isfile("output/2017/01/01/20170101-010101-002.jpg")
+    assert os.path.isfile("output/2017/01/01/20170101-010101-001.jpg")
     shutil.rmtree('output', ignore_errors=True)
 
 
