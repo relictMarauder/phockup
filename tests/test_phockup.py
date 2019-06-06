@@ -340,7 +340,7 @@ def test_process_move(mocker):
     }
     phockup = Phockup('input',
                       date_regex=re.compile(
-                          '.*[_-](?P<year>\d{4})(?P<month>\d{2})(?P<day>\d{2})[_-]?(?P<hour>\d{2})(?P<minute>\d{2})(?P<second>\d{2})'),
+                          '.*(?P<year>\d{4})(?P<month>\d{2})(?P<day>\d{2})[_-]?(?P<hour>\d{2})(?P<minute>\d{2})(?P<second>\d{2})'),
                       images_output_path='output',
                       videos_output_path='output',
                       unknown_output_path='output/unknown'
@@ -353,6 +353,21 @@ def test_process_move(mocker):
     assert not os.path.isfile("input/tmp_20170101_010101.xmp")
     assert os.path.isfile("output/2017/01/01/20170101-010101.jpg")
     assert os.path.isfile("output/2017/01/01/20170101-010101.xmp")
+    shutil.rmtree('output', ignore_errors=True)
+
+
+def test_process_move(mocker):
+    shutil.rmtree('output', ignore_errors=True)
+    mocker.patch.object(Phockup, 'check_directories')
+    mocker.patch.object(Phockup, 'walk_directory')
+    phockup = Phockup('input',
+                      date_regex=re.compile(
+                          '.*(?P<year>\d{4})(?P<month>\d{2})(?P<day>\d{2})[_-]?(?P<hour>\d{2})(?P<minute>\d{2})(?P<second>\d{2})'),
+                      images_output_path='output',
+                      videos_output_path='output',
+                      unknown_output_path='output/unknown'
+                      , move=True)
+    phockup.process_file("input/20140524_151819.mp4")
     shutil.rmtree('output', ignore_errors=True)
 
 
