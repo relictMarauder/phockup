@@ -32,7 +32,7 @@ class Date():
         datestr = None
 
         for key in keys:
-            if key in exif:
+            if key in exif and exif[key] != '0000:00:00 00:00:00':
                 datestr = exif[key]
                 break
 
@@ -60,7 +60,8 @@ class Date():
                 parsed_date_time = None
         return {
             'date': parsed_date_time,
-            'subseconds': subseconds
+            'subseconds': subseconds,
+            'isexif': True,
         }
 
     def from_filename(self, user_regex):
@@ -83,5 +84,6 @@ class Date():
             if date:
                 return {
                     'date': date,
-                    'subseconds': ''
+                    'subseconds': '',
+                    'isexif': False,
                 }
