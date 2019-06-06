@@ -1,6 +1,8 @@
+#!/usr/bin/env python3
 import os
 import re
 from datetime import datetime
+
 from src.date import Date
 
 os.chdir(os.path.dirname(__file__))
@@ -19,7 +21,18 @@ def test_get_date_from_exif():
         "CreateDate": "2017-01-01 01:01:01"
     }) == {
                "date": datetime(2017, 1, 1, 1, 1, 1),
-               "subseconds": ""
+               "subseconds": "",
+               "isexif": True
+           }
+
+
+def test_get_date_from_custom_date_field():
+    assert Date().from_exif({
+        "CustomField": "2017:01:01 01:01:01"
+    }, date_field="CustomField") == {
+               "date": datetime(2017, 1, 1, 1, 1, 1),
+               "subseconds": "",
+               "isexif": True
            }
 
 
@@ -28,7 +41,8 @@ def test_get_date_from_exif_strip_timezone():
         "CreateDate": "2017-01-01 01:01:01-02:00"
     }) == {
                "date": datetime(2017, 1, 1, 1, 1, 1),
-               "subseconds": ""
+               "subseconds": "",
+               "isexif": True
            }
 
 
@@ -37,7 +51,8 @@ def test_get_date_from_exif_colon():
         "CreateDate": "2017:01:01 01:01:01"
     }) == {
                "date": datetime(2017, 1, 1, 1, 1, 1),
-               "subseconds": ""
+               "subseconds": "",
+               "isexif": True
            }
 
 
@@ -46,7 +61,8 @@ def test_get_date_from_exif_subseconds():
         "CreateDate": "2017-01-01 01:01:01.20"
     }) == {
                "date": datetime(2017, 1, 1, 1, 1, 1),
-               "subseconds": "20"
+               "subseconds": "20",
+               "isexif": True
            }
 
 
@@ -55,18 +71,20 @@ def test_get_date_from_exif_invalid():
         "CreateDate": "Invalid"
     }) == {
                "date": None,
-               "subseconds": ""
+               "subseconds": "",
+               "isexif": False
            }
 
 
 def test_get_date_from_filename():
     assert Date("IMG_20170101_010101.jpg").from_exif(
         {},
-        re.compile(
+        user_regex=re.compile(
             '.*[_-](?P<year>\d{4})(?P<month>\d{2})(?P<day>\d{2})[_-]?(?P<hour>\d{2})(?P<minute>\d{2})(?P<second>\d{2})')) \
            == {
                "date": datetime(2017, 1, 1, 1, 1, 1),
-               "subseconds": ""
+               "subseconds": "",
+               "isexif": False
            }
     assert Date("IMG_20170101_010101.jpg").from_exif({}) is None
 
@@ -88,20 +106,21 @@ def test_get_date_custom_regex():
     A valid regex with a matching filename. Returns a datetime.
     """
     date_regex = re.compile(
-        "(?P<day>\d{2})\.(?P<month>\d{2})\.(?P<year>\d{4})[_-]?(?P<hour>\d{2})\.(?P<minute>\d{2})\.(?P<second>\d{2})")
-    assert Date("IMG_27.01.2015-19.20.00.jpg").from_exif({}, date_regex) == {
+        r"(?P<day>\d{2})\.(?P<month>\d{2})\.(?P<year>\d{4})[_-]?(?P<hour>\d{2})\.(?P<minute>\d{2})\.(?P<second>\d{2})")
+    assert Date("IMG_27.01.2015-19.20.00.jpg").from_exif({}, False, user_regex=date_regex) == {
         "date": datetime(2015, 1, 27, 19, 20, 00),
-        "subseconds": ""
+        "subseconds": "",
+        "isexif": False
     }
 
 
 def test_get_date_custom_regex_invalid():
     """
     A valid regex with a matching filename.
-    Return none because there is not enougth information in the filename.
+    Return none because there is not enough information in the filename.
     """
-    date_regex = re.compile("(?P<hour>\d{2})\.(?P<minute>\d{2})\.(?P<second>\d{2})")
-    assert Date("19.20.00.jpg").from_exif({}, date_regex) is None
+    date_regex = re.compile(r"(?P<hour>\d{2})\.(?P<minute>\d{2})\.(?P<second>\d{2})")
+    assert Date("19.20.00.jpg").from_exif({}, False, user_regex=date_regex) is None
 
 
 def test_get_date_custom_regex_no_match():
@@ -109,5 +128,19 @@ def test_get_date_custom_regex_no_match():
     A valid regex with a non-matching filename.
     """
     date_regex = re.compile(
-        "(?P<day>\d{2})\.(?P<month>\d{2})\.(?P<year>\d{4})[_-]?(?P<hour>\d{2})\.(?P<minute>\d{2})\.(?P<second>\d{2})")
-    assert Date("Foo.jpg").from_exif({}, date_regex) is None
+        r"(?P<day>\d{2})\.(?P<month>\d{2})\.(?P<year>\d{4})[_-]?(?P<hour>\d{2})\.(?P<minute>\d{2})\.(?P<second>\d{2})")
+    assert Date("Foo.jpg").from_exif({}, False, user_regex=date_regex) is None
+
+
+def test_get_date_custom_regex_optional_time():
+    """
+    A valid regex with a matching filename that doesn't have hour information.
+    However, the regex in question has hour information as optional.
+    """
+    date_regex = re.compile(
+        r"(?P<day>\d{2})\.(?P<month>\d{2})\.(?P<year>\d{4})[_-]?((?P<hour>\d{2})\.(?P<minute>\d{2})\.(?P<second>\d{2}))?")
+    assert Date("IMG_27.01.2015.jpg").from_exif({}, False, user_regex=date_regex) == {
+        "date": datetime(2015, 1, 27, 0, 0, 00),
+        "subseconds": "",
+        "isexif": False
+    }

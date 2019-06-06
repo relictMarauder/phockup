@@ -2,7 +2,6 @@ import os
 import re
 from datetime import datetime
 
-
 class Date():
     def __init__(self, file=None):
         self.file = file
@@ -24,10 +23,15 @@ class Date():
 
     def build(self, date_object):
         return datetime(date_object["year"], date_object["month"], date_object["day"],
-                        date_object["hour"], date_object["minute"], date_object["second"])
+                        date_object["hour"] if date_object.get("hour") else 0,
+                        date_object["minute"] if date_object.get("minute") else 0,
+                        date_object["second"] if date_object.get("second") else 0)
 
-    def from_exif(self, exif, user_regex=None):
-        keys = ['SubSecCreateDate', 'SubSecDateTimeOriginal', 'CreateDate', 'DateTimeOriginal', 'TimeStamp']
+    def from_exif(self, exif, timestamp=None, user_regex=None, date_field=None):
+        if date_field:
+            keys = date_field.split()
+        else:
+            keys = ['SubSecCreateDate', 'SubSecDateTimeOriginal', 'CreateDate', 'DateTimeOriginal', 'TimeStamp']
 
         datestr = None
 
@@ -36,12 +40,24 @@ class Date():
                 datestr = exif[key]
                 break
 
-        if datestr:
-            return self.from_datestring(datestr)
+        # sometimes exif data can return all zeros
+        # check to see if valid date first
+        # sometimes this returns an int
+        if datestr and isinstance(datestr, str) and not datestr.startswith('0000'):
+            parsed_date = self.from_datestring(datestr)
         else:
-            return self.from_filename(user_regex) if user_regex else None
+            parsed_date = {'date': None, 'subseconds': '', 'isexif': False}
+
+        if parsed_date.get("date") is not None:
+            return parsed_date
+        else:
+            if self.file:
+                return self.from_filename(user_regex, timestamp) if user_regex else None
+            else:
+                return parsed_date
 
     def from_datestring(self, datestr):
+        isexif = True
         datestr = datestr.split('.')
         date = datestr[0]
         if len(datestr) > 1:
@@ -58,24 +74,25 @@ class Date():
                 parsed_date_time = self.strptime(date, "%Y-%m-%d %H:%M:%S")
             except ValueError:
                 parsed_date_time = None
+                isexif = False
         return {
             'date': parsed_date_time,
             'subseconds': subseconds,
-            'isexif': True,
+            'isexif': isexif,
         }
 
-    def from_filename(self, user_regex):
+    def from_filename(self, user_regex, timestamp=None):
         # If missing datetime from EXIF data check if filename is in datetime format.
         # For this use a user provided regex if possible.
         # Otherwise assume a filename such as IMG_20160915_123456.jpg as default.
         default_regex = re.compile(
-            '.*[_-](?P<year>\d{4})(?P<month>\d{2})(?P<day>\d{2})[_-]?(?P<hour>\d{2})(?P<minute>\d{2})(?P<second>\d{2})')
+            r'.*[_-](?P<year>\d{4})(?P<month>\d{2})(?P<day>\d{2})[_-]?(?P<hour>\d{2})(?P<minute>\d{2})(?P<second>\d{2})')
         regex = user_regex or default_regex
         matches = regex.search(os.path.basename(self.file))
 
         if matches:
             try:
-                match_dir = matches.groupdict()
+                match_dir = matches.groupdict(default='0')
                 match_dir = dict([a, int(x)] for a, x in match_dir.items())  # Convert str to int
                 date = self.build(match_dir)
             except (KeyError, ValueError):
@@ -87,3 +104,14 @@ class Date():
                     'subseconds': '',
                     'isexif': False,
                 }
+
+        if timestamp:
+            return self.from_timestamp()
+
+    def from_timestamp(self):
+        date = datetime.fromtimestamp(os.path.getmtime(self.file))
+        return {
+            'date': date,
+            'subseconds': '',
+            'isexif': False,
+        }

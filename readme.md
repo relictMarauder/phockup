@@ -98,11 +98,31 @@ If any of the photos does not have date information you can use the `-r | --rege
 --regex="(?P<day>\d{2})\.(?P<month>\d{2})\.(?P<year>\d{4})[_-]?(?P<hour>\d{2})\.(?P<minute>\d{2})\.(?P<second>\d{2})"
 ```
 
+As a last resort, specify the `-t` option to use the file modification timestamp. This may not be accurate in all cases but can provide some kind of date if you'd rather it not go into the `unknown` folder. 
+
 ### Move files
 Instead of copying the process will move all files from the INPUTDIR to the *OUTPUTDIR by using the flag `-m | --move`. This is useful when working with a big collection of files and the remaining free space is not enough to make a copy of the INPUTDIR.
 
 ### Link files
-Instead of copying the process will create hard link all files from the INPUTDIR into new structure in *OUTPUTDIR by using the flag `-l | --link`. This is useful when working with good structure of photos in INPUTDIR (like folders per device).
+Instead of copying the process will create hard link all files from the INPUTDIR into new structure in OUTPUTDIR by using the flag `-l | --link`. This is useful when working with good structure of photos in INPUTDIR (like folders per device).
+
+### Original filenames
+Organize the files in selected format or using the default year/month/day format but keep original filenames by using the flag `-o | --original-names`.
+
+### Fix incorrect dates
+If date extracted from photos is incorrect, you can use the `-f | --date-field` option to set the correct exif field to get date information from. Use this command to list which fields are available for a file:
+```
+exiftool -time:all -mimetype -j file.jpg
+```
+The output may look like this, but with more fields:
+```
+[{
+  "DateTimeOriginal": "2017:10:06 01:01:01",
+  "CreateDate": "2017:01:01 01:01:01",
+]}
+```
+If the correct date is in `DateTimeOriginal`, you can include the option `--date-field=DateTimeOriginal` to get date information from it.
+To set multiple fields to be tried in order until a valid date is found, just join them with spaces in a quoted string like `"CreateDate FileModifyDate"`.
 
 ## Development
 
@@ -120,11 +140,23 @@ pytest
 ```
 
 ## Changelog
+##### `1.7.2-relict`
+* Add `--date-field` option to set date extraction fields  [#54](https://github.com/ivandokov/phockup/issues/54)
+* Handle regex with optional hour information  [#62](https://github.com/ivandokov/phockup/issues/62)
+* Fix regex support for incomplete time on filename  [#55](https://github.com/ivandokov/phockup/issues/55)
+* Fix to handle files with illegal characters [#53](https://github.com/ivandokov/phockup/issues/53)
+* Resolved [#44](https://github.com/ivandokov/phockup/issues/44)
+* Add `-o | --original-names` option to allow keeping the original filenames
+* Add `-t` option to allow using file modification time as a last resort
+* Workaround EXIF DateTaken time of all-zeros
+
+##### `1.7.1-relict`
+
 ##### `1.7.0-relict`
 * Remove `[OUTPUTDIR]` parameter
 * Remove `-i | --only-images` parameter
 * Remote`-v | --only-vides` parameter
-* Add `-f | --log-filename` is file name of log file
+* Add `-g | --log-filename` is file name of log file
 * Add `-i | --image-output` is the directory where your **sorted** photos will be stored. It could be a new not existing directory. 
 * Add `-v | --videos-output`  is the directory where your **sorted** videos will be stored. It could be a new not existing directory.
 * Add `-u | --unknown-output`  is the directory where your unknown files will be stored. It could be a new not existing directory.
@@ -132,7 +164,7 @@ pytest
 ##### `1.6.4-relict`
 * Add `-i | --only-images` flag to process ony files with image meta information
 * Add `-v | --only-vides` flag to process ony files with videos meta information
-* Add `-o | --output-name` is output filename(w/o extension) format (default: '%Y%m%d-%H%M%S')
+* Add `-n | --output-name` is output filename(w/o extension) format (default: '%Y%m%d-%H%M%S')
 * By moving files instead of copy remove all empty folder
 * Add additional console outputs
 * Add test for delete empty input folders by move  

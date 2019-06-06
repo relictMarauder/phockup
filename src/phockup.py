@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 import filecmp
-import hashlib
+import logging
 import os
 import shutil
 import sys
-import logging
+
 from src.exif import Exif
 from src.source_file import SourceFile, SourceFileType
 
@@ -14,6 +14,7 @@ ignored_folders = (".@__thumb")
 
 class Phockup():
     def __init__(self, input_path, **args):
+        filecmp.clear_cache()
         self.log = self.setup_logger(args.get('log_file_name', None))
         self.counter_all_files = 0
         self.counter_video_files = 0
@@ -35,9 +36,28 @@ class Phockup():
 
         self.dir_format = args.get('dir_format', os.path.sep.join(['%Y', '%m', '%d']))
         self.move = args.get('move', False)
+        if self.move:
+            self.log.info("Using move strategy")
         self.link = args.get('link', False)
+        if self.link:
+            self.log.info("Using link strategy")
+        self.original_filenames = args.get('original_filenames', False)
+        if self.original_filenames:
+            self.log.info("Using original file names")
         self.output_file_name_format = args.get('output_file_name_format', '%Y%m%d-%H%M%S')
         self.date_regex = args.get('date_regex', None)
+        self.timestamp = args.get('timestamp', False)
+        if self.timestamp:
+            self.log.info("Using file's timestamp")
+
+        self.date_field = args.get('date_field', False)
+        if self.date_field:
+            self.log.info("Using as date field: %s" % self.date_field)
+
+        self.dry_run = args.get('dry_run', False)
+        if self.dry_run:
+            self.log.info("Dry run only, not moving files only showing changes")
+
         self.log_config()
         try:
             self.log.info("Checking directories...")
@@ -122,7 +142,8 @@ class Phockup():
         if self.videos_output_path is not None and not os.path.exists(self.videos_output_path):
             self.log.info('Output directory for videos "%s" does not exist, creating now' % self.videos_output_path)
             try:
-                os.makedirs(self.videos_output_path)
+                if not self.dry_run:
+                    os.makedirs(self.videos_output_path)
             except Exception as ex:
                 self.log.error('Cannot create output directory for videos files. No write access!')
                 raise ex
@@ -130,7 +151,8 @@ class Phockup():
         if self.images_output_path is not None and not os.path.exists(self.images_output_path):
             self.log.info('Output directory for images "%s" does not exist, creating now' % self.images_output_path)
             try:
-                os.makedirs(self.images_output_path)
+                if not self.dry_run:
+                    os.makedirs(self.images_output_path)
             except Exception as ex:
                 self.log.error('Cannot create output directory for images files. No write access!')
                 raise ex
@@ -139,7 +161,8 @@ class Phockup():
             self.log.info(
                 'Output directory for unknown files "%s" does not exist, creating now' % self.unknown_output_path)
             try:
-                os.makedirs(self.unknown_output_path)
+                if not self.dry_run:
+                    os.makedirs(self.unknown_output_path)
             except Exception as ex:
                 self.log.error('Cannot create output directory for unknown files. No write access!')
                 raise ex
@@ -165,7 +188,8 @@ class Phockup():
             if self.move and len(os.listdir(root)) == 0:
                 # remove all empty directories in PATH
                 self.log.info('Deleting empty dirs in path: {}'.format(root))
-                os.removedirs(root)
+                if not self.dry_run:
+                    os.removedirs(root)
 
     def process_file(self, file_path: str):
         """
@@ -174,12 +198,15 @@ class Phockup():
         """
         if str.endswith(file_path, '.xmp'):
             return None
-        log_line = file_path
+        log_line = file_path.encode('unicode-escape').decode('utf-8')
 
         phockup_file = SourceFile(
             output_file_name_format=self.output_file_name_format,
             dir_format=self.dir_format,
             date_regex=self.date_regex,
+            timestamp=self.timestamp,
+            date_field=self.date_field,
+            original_filenames=self.original_filenames,
             images_output_path=self.images_output_path,
             videos_output_path=self.videos_output_path,
             unknown_output_path=self.unknown_output_path,
@@ -199,10 +226,11 @@ class Phockup():
 
         if phockup_file.date and not phockup_file.date['isexif']:
             self.log.info(log_line + " => write '%s' to exifTag: 'CreateDate'" % phockup_file.date['date'])
-            if not Exif(file_path).write_created_date(phockup_file.date['date']):
-                self.log.error(log_line + " => can't write '%s' to exifTag 'CreateDate'" % phockup_file.date['date'])
+            if not self.dry_run:
+                if not Exif(file_path).write_created_date(phockup_file.date['date']):
+                    self.log.error(log_line + " => can't write '%s' to exifTag 'CreateDate'" % phockup_file.date['date'])
 
-        if not os.path.isdir(phockup_file.output_path):
+        if not os.path.isdir(phockup_file.output_path) and not self.dry_run:
             os.makedirs(phockup_file.output_path)
         self.counter_processed_files += 1
 
@@ -212,11 +240,12 @@ class Phockup():
         while True:
             if os.path.isfile(target_file_path):
                 if os.path.getsize(file_path) == os.path.getsize(target_file_path) \
-                        and filecmp.cmp(file_path, target_file_path):
+                        and filecmp.cmp(file_path, target_file_path, shallow=False):
                     # if self.checksum(file) == self.checksum(target_file):
                     self.counter_duplicates += 1
                     if self.move:
-                        os.remove(file_path)
+                        if not self.dry_run:
+                            os.remove(file_path)
                         self.log.info(log_line + " => remove, duplicated file('%s')" % target_file_path)
                     else:
                         self.log.info(log_line + " => skipped, duplicated file ('%s')" % target_file_path)
@@ -224,15 +253,18 @@ class Phockup():
             else:
                 if self.move:
                     try:
-                        shutil.move(file_path, target_file_path)
+                        if not self.dry_run:
+                            shutil.move(file_path, target_file_path)
                     except FileNotFoundError:
                         self.log.info(log_line + ' => skipped, no such file or directory')
                         break
                 elif self.link:
-                    os.link(file_path, target_file_path)
+                    if not self.dry_run:
+                        os.link(file_path, target_file_path)
                 else:
                     try:
-                        shutil.copy2(file_path, target_file_path)
+                        if not self.dry_run:
+                            shutil.copy2(file_path, target_file_path)
                     except FileNotFoundError:
                         self.log.info(log_line + ' => skipped, no such file or directory')
                         break
@@ -268,9 +300,10 @@ class Phockup():
             xmp_path = os.path.sep.join([output, xmp_target])
             self.log.info('%s => %s' % (xmp_original, xmp_path))
 
-            if self.move:
-                shutil.move(xmp_original, xmp_path)
-            elif self.link:
-                os.link(xmp_original, xmp_path)
-            else:
-                shutil.copy2(xmp_original, xmp_path)
+            if not self.dry_run:
+                if self.move:
+                    shutil.move(xmp_original, xmp_path)
+                elif self.link:
+                    os.link(xmp_original, xmp_path)
+                else:
+                    shutil.copy2(xmp_original, xmp_path)

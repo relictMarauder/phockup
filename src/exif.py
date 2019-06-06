@@ -1,5 +1,6 @@
-from subprocess import check_output, CalledProcessError
 import json
+import shlex
+from subprocess import check_output, CalledProcessError
 
 
 class Exif(object):
@@ -22,7 +23,7 @@ class Exif(object):
         try:
             data = check_output('exiftool -time:all -mimetype -j "%s"' % self.file, shell=True).decode('UTF-8')
             exif = json.loads(data)[0]
-        except (CalledProcessError, UnicodeDecodeError):
+        except (CalledProcessError, UnicodeDecodeError) as error:
             return None
 
         return exif

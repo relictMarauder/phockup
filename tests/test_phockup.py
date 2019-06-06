@@ -1,8 +1,8 @@
+#!/usr/bin/env python3
+import os
 import re
 import shutil
 import sys
-import os
-from datetime import datetime
 from unittest.mock import call
 
 from src.dependency import check_dependencies
@@ -89,6 +89,20 @@ def test_error_for_no_write_access_when_creating_output_dir(mocker, capsys):
     assert any(item.find('No write access') > 0 for item in output_log)
 
 
+def test_dry_run():
+    shutil.rmtree('output', ignore_errors=True)
+    Phockup('input', images_output_path=os.path.join('output', 'images'),
+            videos_output_path=os.path.join('output', 'videos'),
+            unknown_output_path=os.path.join('output', 'unknown'), dry_run=True)
+    assert not os.path.isdir('output')
+    dir1 = 'output/2017/01/01'
+    dir2 = 'output/2017/10/06'
+    dir3 = 'output/unknown'
+    assert not os.path.isdir(dir1)
+    assert not os.path.isdir(dir2)
+    assert not os.path.isdir(dir3)
+
+
 def test_walking_directory():
     shutil.rmtree('output', ignore_errors=True)
     Phockup('input',
@@ -107,8 +121,8 @@ def test_walking_directory():
     assert os.path.isdir(dir3)
     assert len([name for name in os.listdir(dir1) if os.path.isfile(os.path.join(dir1, name))]) == 4
     assert len([name for name in os.listdir(dir12) if os.path.isfile(os.path.join(dir12, name))]) == 1
-    assert len([name for name in os.listdir(dir2) if os.path.isfile(os.path.join(dir2, name))]) == 1
-    assert len([name for name in os.listdir(dir3) if os.path.isfile(os.path.join(dir3, name))]) == 1
+    assert len([name for name in os.listdir(dir2) if os.path.isfile(os.path.join(dir2, name))]) == 2
+    assert len([name for name in os.listdir(dir3) if os.path.isfile(os.path.join(dir3, name))]) == 2
     shutil.rmtree('output', ignore_errors=True)
 
 
@@ -128,8 +142,8 @@ def test_walking_directory_without_images():
     assert not os.path.isdir(dir12)
     assert os.path.isdir(dir2)
     assert os.path.isdir(dir3)
-    assert len([name for name in os.listdir(dir2) if os.path.isfile(os.path.join(dir2, name))]) == 1
-    assert len([name for name in os.listdir(dir3) if os.path.isfile(os.path.join(dir3, name))]) == 1
+    assert len([name for name in os.listdir(dir2) if os.path.isfile(os.path.join(dir2, name))]) == 2
+    assert len([name for name in os.listdir(dir3) if os.path.isfile(os.path.join(dir3, name))]) == 2
     shutil.rmtree('output', ignore_errors=True)
 
 
@@ -151,7 +165,7 @@ def test_walking_directory_without_videos():
     assert os.path.isdir(dir3)
     assert len([name for name in os.listdir(dir1) if os.path.isfile(os.path.join(dir1, name))]) == 4
     assert len([name for name in os.listdir(dir12) if os.path.isfile(os.path.join(dir12, name))]) == 1
-    assert len([name for name in os.listdir(dir3) if os.path.isfile(os.path.join(dir3, name))]) == 1
+    assert len([name for name in os.listdir(dir3) if os.path.isfile(os.path.join(dir3, name))]) == 2
     shutil.rmtree('output', ignore_errors=True)
 
 
@@ -173,7 +187,7 @@ def test_walking_directory_without_unknown():
     assert not os.path.isdir(dir3)
     assert len([name for name in os.listdir(dir1) if os.path.isfile(os.path.join(dir1, name))]) == 4
     assert len([name for name in os.listdir(dir12) if os.path.isfile(os.path.join(dir12, name))]) == 1
-    assert len([name for name in os.listdir(dir2) if os.path.isfile(os.path.join(dir2, name))]) == 1
+    assert len([name for name in os.listdir(dir2) if os.path.isfile(os.path.join(dir2, name))]) == 2
     shutil.rmtree('output', ignore_errors=True)
 
 
@@ -194,14 +208,15 @@ def test_process_file_with_filename_date(mocker):
     assert os.path.isfile("output/2017/01/01/20170101-010101.jpg")
     shutil.rmtree('output', ignore_errors=True)
 
+
 def test_process_file_with_duplicate(mocker):
     shutil.rmtree('output', ignore_errors=True)
     mocker.patch.object(Phockup, 'check_directories')
     mocker.patch.object(Phockup, 'walk_directory')
     phockup = Phockup('input',
-            images_output_path='output',
-            videos_output_path='output',
-            unknown_output_path='output/unknown')
+                      images_output_path='output',
+                      videos_output_path='output',
+                      unknown_output_path='output/unknown')
     phockup.process_file("input/exif.jpg")
     phockup.process_file("input/exif_1.jpg")
     phockup.process_file("input/exif_2.jpg")
@@ -314,7 +329,7 @@ def test_process_image_unknown(mocker):
             images_output_path='output',
             videos_output_path='output',
             unknown_output_path='output/unknown').process_file("input/unknown.jpg")
-    assert os.path.isfile("output/unknown/unknown.jpg")
+    assert os.path.isfile("output/unknown/UNKNOWN.jpg")
     shutil.rmtree('output', ignore_errors=True)
 
 
@@ -476,3 +491,29 @@ def test_process_skip_ignored_file():
     assert not os.path.isfile("output/unknown/.DS_Store")
     shutil.rmtree('output', ignore_errors=True)
     shutil.rmtree('input_ignored', ignore_errors=True)
+
+
+def test_keep_original_filenames(mocker):
+    shutil.rmtree('output', ignore_errors=True)
+    mocker.patch.object(Phockup, 'check_directories')
+    mocker.patch.object(Phockup, 'walk_directory')
+    Phockup('input', images_output_path='output',
+            videos_output_path='output',
+            unknown_output_path='output/unknown',
+            original_filenames=True).process_file("input/exif.jpg")
+    assert os.path.isfile("output/2017/01/01/exif.jpg")
+    assert not os.path.isfile("output/2017/01/01/20170101-010101.jpg")
+    shutil.rmtree('output', ignore_errors=True)
+
+
+def test_keep_original_filenames_and_filenames_case(mocker):
+    shutil.rmtree('output', ignore_errors=True)
+    mocker.patch.object(Phockup, 'check_directories')
+    mocker.patch.object(Phockup, 'walk_directory')
+    Phockup('input', images_output_path='output',
+            videos_output_path='output',
+            unknown_output_path='output/unknown',
+            original_filenames=True).process_file("input/UNKNOWN.jpg")
+    assert os.path.isfile("output/2017/10/06/UNKNOWN.jpg")
+    assert not 'unknown.jpg' in os.listdir("output/2017/10/06")
+    shutil.rmtree('output', ignore_errors=True)

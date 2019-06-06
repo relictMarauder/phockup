@@ -1,10 +1,10 @@
 import os
+import re
 from enum import Enum
 from sre_parse import Pattern
 
 from src.date import Date
 from src.exif import Exif
-import re
 
 
 class SourceFileType(Enum):
@@ -20,6 +20,9 @@ class SourceFile:
                  videos_output_path: (str, None) = None,
                  unknown_output_path: (str, None) = None,
                  date_regex: (Pattern, None) = None,
+                 timestamp: bool = False,
+                 original_filenames: bool = False,
+                 date_field=None,
                  output_file_name_format: str = '%Y%m%d-%H%M%S',
                  dir_format: str = os.path.sep.join(['%Y', '%m', '%d'])
                  ):
@@ -27,6 +30,9 @@ class SourceFile:
         self.exif_data = Exif(file_path).data()
         self.file_path = file_path
         self.date_regex = date_regex
+        self.original_filenames = original_filenames
+        self.date_field = date_field
+        self.timestamp = timestamp
         self.images_output_path = images_output_path
         self.videos_output_path = videos_output_path
         self.unknown_output_path = unknown_output_path
@@ -44,7 +50,11 @@ class SourceFile:
         Returns target file name and path
         """
         if SourceFile.__is_image(self.exif_data):
-            self.date = Date(self.file_path).from_exif(self.exif_data, self.date_regex)
+            self.date = Date(self.file_path).from_exif(
+                exif=self.exif_data,
+                timestamp=self.timestamp,
+                date_field=self.date_field,
+                user_regex=self.date_regex)
             output_dir = SourceFile.__get_output_dir(self.date,
                                                      self.dir_format)
             if output_dir:
@@ -53,7 +63,9 @@ class SourceFile:
                 self.output_path = None if self.skipped else os.path.join(self.images_output_path, output_dir)
 
         elif SourceFile.__is_video(self.exif_data):
-            self.date = Date(self.file_path).from_exif(self.exif_data, self.date_regex)
+            self.date = Date(self.file_path).from_exif(
+                exif=self.exif_data,
+                user_regex=self.date_regex)
             output_dir = SourceFile.__get_output_dir(self.date,
                                                      self.dir_format)
             if output_dir:
@@ -106,8 +118,12 @@ class SourceFile:
 
     def __get_file_name(self) -> str:
         """
-        Generate file name based on exif data unless it is missing. Then use original file name
+        Generate file name based on exif data unless it is missing or
+        original filenames are required. Then use original file name
         """
+        if self.original_filenames:
+            return os.path.basename(self.file_path)
+
         if self.date:
             try:
                 filename = self.date['date'].strftime(self.output_file_name_format)
@@ -122,7 +138,9 @@ class SourceFile:
         if self.skipped:
             return None
         if self._target_file_name is None:
-            self._target_file_name = self.__get_file_name().lower()
+            self._target_file_name = self.__get_file_name()
+        if not self.original_filenames:
+            self._target_file_name = self._target_file_name.lower()
         return self._target_file_name
 
     def target_file_path(self) -> (str, None):
