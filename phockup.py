@@ -10,7 +10,7 @@ from src.help import help
 from src.phockup import Phockup
 from src.printer import Printer
 
-version = '1.7.0-relict'
+version = '1.7.1-relict'
 printer = Printer()
 
 
