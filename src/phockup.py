@@ -197,6 +197,11 @@ class Phockup():
             self.log.info(log_line + " => skipped, the output dir for %s is not defined" % phockup_file.type.name)
             return
 
+        if phockup_file.date and not phockup_file.date['isexif']:
+            self.log.info(log_line + " => write '%s' to exifTag: 'CreateDate'" % phockup_file.date['date'])
+            if not Exif(file_path).write_created_date(phockup_file.date['date']):
+                self.log.error(log_line + " => can't write '%s' to exifTag 'CreateDate'" % phockup_file.date['date'])
+
         if not os.path.isdir(phockup_file.output_path):
             os.makedirs(phockup_file.output_path)
         self.counter_processed_files += 1
